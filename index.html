@@ -8,52 +8,89 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            background: #f5f5f5;
+            background: #f3f3f3;
         }
 
         header {
             background: #222;
             color: white;
-            padding: 20px;
+            padding: 18px;
             text-align: center;
         }
 
         .container {
-            padding: 20px;
+            padding: 15px;
         }
 
-        .categories button {
-            padding: 15px 20px;
-            margin: 5px;
-            font-size: 16px;
+        .order-type {
+            margin-bottom: 20px;
+        }
+
+        button {
             cursor: pointer;
+        }
+
+        .order-type button,
+        .categories button {
+            padding: 12px 18px;
+            margin: 4px;
+            font-size: 16px;
         }
 
         .products {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         .product {
             background: white;
             border: 1px solid #ccc;
             padding: 20px;
+            min-height: 85px;
             font-size: 16px;
-            cursor: pointer;
+            border-radius: 8px;
         }
 
         .cart {
-            margin-top: 30px;
+            margin-top: 25px;
             background: white;
             padding: 20px;
+            border-radius: 8px;
+        }
+
+        .cart-row {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+
+        .small-button {
+            padding: 5px 10px;
+            margin: 3px;
         }
 
         .payment button {
-            padding: 15px 30px;
+            padding: 14px 25px;
             margin: 5px;
-            font-size: 18px;
+            font-size: 17px;
+        }
+
+        .clear {
+            background: #eee;
+            padding: 10px 18px;
+            margin-top: 10px;
+        }
+
+        .selected {
+            font-weight: bold;
+            border: 2px solid black;
+        }
+
+        @media (max-width: 700px) {
+            .products {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
     </style>
 </head>
@@ -62,9 +99,27 @@
 
 <header>
     <h1>Indulge Cafe POS</h1>
+    <div>Order #<span id="orderNumber">1</span></div>
 </header>
 
 <div class="container">
+
+    <h2>Order Type</h2>
+
+    <div class="order-type">
+        <button id="dineBtn" onclick="setOrderType('Dine In')">
+            Dine In
+        </button>
+
+        <button id="takeBtn" onclick="setOrderType('Takeaway')">
+            Takeaway
+        </button>
+    </div>
+
+    <p>
+        Selected:
+        <strong id="orderTypeDisplay">Not selected</strong>
+    </p>
 
     <h2>Categories</h2>
 
@@ -73,6 +128,8 @@
         <button onclick="showCategory('Breakfast')">Breakfast</button>
         <button onclick="showCategory('Burgers')">Burgers</button>
         <button onclick="showCategory('Fish & Chips')">Fish & Chips</button>
+        <button onclick="showCategory('Dinner')">Dinner</button>
+        <button onclick="showCategory('Hot Box')">Hot Box</button>
     </div>
 
     <h2>Products</h2>
@@ -90,9 +147,17 @@
         </h2>
 
         <div class="payment">
-            <button onclick="payCash()">Cash</button>
-            <button onclick="payCard()">Card</button>
+            <button onclick="pay('Cash')">Cash</button>
+            <button onclick="pay('Card')">Card</button>
         </div>
+
+        <button class="clear" onclick="clearOrder()">
+            Clear Order
+        </button>
+
+        <button class="clear" onclick="printReceipt()">
+            Print Receipt
+        </button>
 
     </div>
 
@@ -101,6 +166,7 @@
 <script>
 
 const products = [
+
     {name: "Flat White", price: 5.50, category: "Coffee"},
     {name: "Cappuccino", price: 5.50, category: "Coffee"},
     {name: "Latte", price: 5.50, category: "Coffee"},
@@ -110,12 +176,40 @@ const products = [
 
     {name: "Chicken Burger", price: 13.99, category: "Burgers"},
     {name: "Beef Burger", price: 15.99, category: "Burgers"},
+    {name: "Veggie Burger", price: 14.99, category: "Burgers"},
 
     {name: "Hoki", price: 11.00, category: "Fish & Chips"},
-    {name: "Pearl Perch", price: 14.00, category: "Fish & Chips"}
+    {name: "Pearl Perch", price: 14.00, category: "Fish & Chips"},
+    {name: "6 Calamari", price: 10.00, category: "Fish & Chips"},
+    {name: "12 Calamari", price: 17.00, category: "Fish & Chips"},
+
+    {name: "Chicken Schnitzel", price: 21.99, category: "Dinner"},
+    {name: "Classic Parmy", price: 25.99, category: "Dinner"},
+    {name: "Rib Eye Steak 400g", price: 42.99, category: "Dinner"},
+
+    {name: "Hot Box Item", price: 8.99, category: "Hot Box"}
+
 ];
 
 let cart = [];
+let orderType = "";
+let orderNumber = 1;
+
+function setOrderType(type) {
+
+    orderType = type;
+
+    document.getElementById("orderTypeDisplay").innerText = type;
+
+    document.getElementById("dineBtn").classList.remove("selected");
+    document.getElementById("takeBtn").classList.remove("selected");
+
+    if (type === "Dine In") {
+        document.getElementById("dineBtn").classList.add("selected");
+    } else {
+        document.getElementById("takeBtn").classList.add("selected");
+    }
+}
 
 function showCategory(category) {
 
@@ -167,8 +261,7 @@ function addToCart(product) {
 
 function updateCart() {
 
-    const cartArea =
-        document.getElementById("cartItems");
+    const cartArea = document.getElementById("cartItems");
 
     cartArea.innerHTML = "";
 
@@ -178,23 +271,36 @@ function updateCart() {
 
         total += item.price * item.quantity;
 
-        const row = document.createElement("p");
+        const row = document.createElement("div");
+
+        row.className = "cart-row";
 
         row.innerHTML = `
-            ${item.name}
-            - $${item.price.toFixed(2)}
+            <strong>${item.name}</strong><br>
 
-            <button onclick="decrease(${index})">-</button>
+            $${item.price.toFixed(2)}
+
+            <button class="small-button"
+                onclick="decrease(${index})">
+                -
+            </button>
 
             ${item.quantity}
 
-            <button onclick="increase(${index})">+</button>
+            <button class="small-button"
+                onclick="increase(${index})">
+                +
+            </button>
 
             = $${(item.price * item.quantity).toFixed(2)}
+
+            <button class="small-button"
+                onclick="removeItem(${index})">
+                Remove
+            </button>
         `;
 
         cartArea.appendChild(row);
-
     });
 
     document.getElementById("total").innerText =
@@ -202,9 +308,7 @@ function updateCart() {
 }
 
 function increase(index) {
-
     cart[index].quantity++;
-
     updateCart();
 }
 
@@ -219,32 +323,61 @@ function decrease(index) {
     updateCart();
 }
 
-function payCash() {
+function removeItem(index) {
+    cart.splice(index, 1);
+    updateCart();
+}
+
+function clearOrder() {
+
+    if (confirm("Clear the whole order?")) {
+        cart = [];
+        updateCart();
+    }
+}
+
+function pay(method) {
 
     if (cart.length === 0) {
         alert("Please add items first.");
         return;
     }
 
-    alert("Cash payment completed.");
+    if (orderType === "") {
+        alert("Please select Dine In or Takeaway.");
+        return;
+    }
+
+    const total =
+        document.getElementById("total").innerText;
+
+    alert(
+        "Order #" + orderNumber +
+        "\n" +
+        orderType +
+        "\nPayment: " + method +
+        "\nTotal: $" + total
+    );
+
+    orderNumber++;
+
+    document.getElementById("orderNumber").innerText =
+        orderNumber;
 
     cart = [];
+    orderType = "";
+
+    document.getElementById("orderTypeDisplay").innerText =
+        "Not selected";
+
+    document.getElementById("dineBtn").classList.remove("selected");
+    document.getElementById("takeBtn").classList.remove("selected");
 
     updateCart();
 }
 
-function payCard() {
-
-    if (cart.length === 0) {
-        alert("Please add items first.");
-        return;
-    }
-
-    alert("Card payment recorded.");
-
-    cart = [];
-
-    updateCart();
+function printReceipt() {
+    window.print();
 }
 
 showCategory("Coffee");
