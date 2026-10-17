@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Items</title>
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("products", "Items");
+document.getElementById("page").innerHTML=`
+<div class="container"><div class="card"><h2>Item library</h2><div class="grid g4">
+<div><label>Name</label><input id="name"></div><div><label>Category</label><select id="category"></select></div><div><label>Price</label><input id="price" type="number" step="0.01"></div><div><label>&nbsp;</label><button class="btn btn-dark" onclick="addP()">Add item</button></div></div></div>
+<div class="card"><div class="toolbar"><div><label>Search</label><input id="q" oninput="render()" placeholder="Search item library"></div></div><div style="overflow:auto"><table><thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Favourite</th><th>Status</th><th>Actions</th></tr></thead><tbody id="rows"></tbody></table></div></div></div>
+`;
+
+function fillCats(){category.innerHTML="";App.categories().filter(c=>c.active!==false).forEach(c=>{let o=document.createElement('option');o.value=o.textContent=c.name;category.appendChild(o)})}
+function addP(){let n=name.value.trim(),c=category.value,p=Number(price.value);if(!n||!c||Number.isNaN(p)){alert("Complete all fields.");return}let a=App.products();a.push({id:App.nextId(a),name:n,category:c,price:p,active:true,favorite:false});App.saveProducts(a);name.value="";price.value="";render()}
+function editP(id){let a=App.products(),p=a.find(x=>x.id===id);let n=prompt("Item name",p.name);if(n===null)return;let c=prompt("Category",p.category);if(c===null)return;let pr=Number(prompt("Price",p.price));if(!n.trim()||!c.trim()||Number.isNaN(pr))return;p.name=n.trim();p.category=c.trim();p.price=pr;App.saveProducts(a);render()}
+function fav(id){let a=App.products(),p=a.find(x=>x.id===id);p.favorite=!p.favorite;App.saveProducts(a);render()}
+function toggle(id){let a=App.products(),p=a.find(x=>x.id===id);p.active=p.active===false?true:false;App.saveProducts(a);render()}
+function del(id){if(confirm("Delete item permanently?")){App.saveProducts(App.products().filter(x=>x.id!==id));render()}}
+function render(){let z=q.value.toLowerCase(),r=rows;r.innerHTML="";App.products().filter(p=>!z||p.name.toLowerCase().includes(z)||p.category.toLowerCase().includes(z)).sort((a,b)=>a.category.localeCompare(b.category)||a.name.localeCompare(b.name)).forEach(p=>{let tr=document.createElement('tr');tr.innerHTML=`<td><b>${p.name}</b></td><td>${p.category}</td><td>${App.money(p.price)}</td><td><button onclick="fav(${p.id})">${p.favorite?'★':'☆'}</button></td><td><span class="badge ${p.active===false?'bad':'good'}">${p.active===false?'Unavailable':'Available'}</span></td><td><button class="btn" onclick="editP(${p.id})">Edit</button> <button class="btn" onclick="toggle(${p.id})">${p.active===false?'Enable':'Disable'}</button> <button class="btn btn-bad" onclick="del(${p.id})">Delete</button></td>`;r.appendChild(tr)})}
+fillCats();render();
+</script></body></html>

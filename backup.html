@@ -1,0 +1,11 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Backup</title>
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("backup", "Backup");
+document.getElementById("page").innerHTML=`
+<div class="container"><div class="card"><h2>Backup & restore</h2><p>Download a full copy of your products, categories, sales, saved carts, staff and settings.</p><button class="btn btn-dark" onclick="App.exportBackup()">Download full backup</button></div>
+<div class="card"><h2>Restore backup</h2><div class="notice">Restoring replaces the current data in this browser. Download a backup first.</div><input id="file" type="file" accept=".json"><button class="btn" style="margin-top:10px" onclick="restore()">Restore</button></div>
+<div class="card"><h2>Important</h2><p>This build stores operational data in this browser. For a real café setup across multiple devices, connect it to a cloud database before relying on it as the only business record.</p></div></div>
+`;
+
+function restore(){let f=file.files[0];if(!f)return alert('Choose a backup file');if(!confirm('Replace current data with this backup?'))return;App.importBackup(f,()=>{alert('Backup restored');location.reload()})}
+</script></body></html>

@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orders</title>
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("orders", "Orders");
+document.getElementById("page").innerHTML=`
+<div class="container"><div class="card"><h2>Transactions</h2><div class="toolbar"><div><label>Date</label><input id="date" type="date" onchange="render()"></div><div><label>Payment</label><select id="pay" onchange="render()"><option value="">All</option><option>Cash</option><option>Card</option></select></div></div></div>
+<div class="card"><div style="overflow:auto"><table><thead><tr><th>#</th><th>Date</th><th>Type</th><th>Customer/Table</th><th>Payment</th><th>Total</th><th>Items</th></tr></thead><tbody id="rows"></tbody></table></div></div></div>
+`;
+
+date.value=App.today();function render(){rows.innerHTML="";App.orders().filter(o=>(!date.value||String(o.createdAt).slice(0,10)===date.value)&&(!pay.value||o.paymentMethod===pay.value)).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).forEach(o=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${o.orderNumber}</td><td>${new Date(o.createdAt).toLocaleString()}</td><td>${o.orderType}</td><td>${o.tableName||''}</td><td>${o.paymentMethod}</td><td>${App.money(o.total)}</td><td>${(o.items||[]).map(i=>`${i.qty}× ${i.name}`).join(", ")}</td>`;rows.appendChild(tr)})}render();
+</script></body></html>

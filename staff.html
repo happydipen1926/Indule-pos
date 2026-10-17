@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Staff</title>
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("staff", "Staff");
+document.getElementById("page").innerHTML=`
+<div class="container"><div class="card"><h2>Staff</h2><div class="grid g4"><div><label>Name</label><input id="n"></div><div><label>Role</label><select id="r"><option>Cashier</option><option>Manager</option><option>Kitchen</option></select></div><div><label>PIN</label><input id="pin" maxlength="6"></div><div><label>&nbsp;</label><button class="btn btn-dark" onclick="add()">Add staff</button></div></div></div><div class="card"><table><thead><tr><th>Name</th><th>Role</th><th>PIN</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+`;
+
+function add(){if(!n.value.trim()||!pin.value.trim())return alert('Enter name and PIN');let a=App.staff();a.push({id:App.nextId(a),name:n.value.trim(),role:r.value,pin:pin.value.trim()});App.saveStaff(a);n.value='';pin.value='';render()}function del(id){if(confirm('Delete staff?')){App.saveStaff(App.staff().filter(x=>x.id!==id));render()}}function render(){rows.innerHTML='';App.staff().forEach(s=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${s.name}</td><td>${s.role}</td><td>${'•'.repeat(String(s.pin).length)}</td><td><button class="btn btn-bad" onclick="del(${s.id})">Delete</button></td>`;rows.appendChild(tr)})}render();
+</script></body></html>

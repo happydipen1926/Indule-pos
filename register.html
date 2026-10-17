@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create Account</title>
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body>
+<div class="container"><div class="login"><div class="card"><h1>Create account</h1><div id="msg"></div>
+<label>Business Name</label><input id="business" value="Indulge Cafe">
+<label style="margin-top:10px">Your Name</label><input id="name">
+<label style="margin-top:10px">Email</label><input id="email" type="email">
+<label style="margin-top:10px">Password</label><input id="password" type="password">
+<label style="margin-top:10px">Confirm Password</label><input id="confirm" type="password">
+<button class="btn btn-dark" style="width:100%;margin-top:14px" onclick="reg()">Create account</button>
+<p style="text-align:center"><a href="index.html">Back to sign in</a></p></div></div></div>
+<script>
+function reg(){let b=business.value.trim(),n=name.value.trim(),e=email.value.trim().toLowerCase(),p=password.value,c=confirm.value;if(!b||!n||!e||p.length<6){msg.innerHTML='<div class="notice">Complete all fields. Password minimum 6 characters.</div>';return}if(p!==c){msg.innerHTML='<div class="notice">Passwords do not match.</div>';return}let a=App.read(App.K.users,[]);if(a.some(x=>x.email===e)){msg.innerHTML='<div class="notice">Email already exists.</div>';return}a.push({id:App.nextId(a),name:n,email:e,password:p,role:'owner'});App.write(App.K.users,a);let s=App.settings();s.businessName=b;App.saveSettings(s);msg.innerHTML='<div class="notice">Account created. Redirecting…</div>';setTimeout(()=>location.href='index.html',600)}
+</script></body></html>

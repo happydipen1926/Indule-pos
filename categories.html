@@ -1,0 +1,14 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Categories</title>
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("products", "Categories");
+document.getElementById("page").innerHTML=`
+<div class="container"><div class="card"><h2>Categories</h2><div class="toolbar"><div><label>New category</label><input id="newcat" placeholder="e.g. Coffee"></div><div style="flex:0"><label>&nbsp;</label><button class="btn btn-dark" onclick="addC()">Add</button></div></div></div>
+<div class="card"><table><thead><tr><th>Name</th><th>Status</th><th>Actions</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+`;
+
+function addC(){let n=newcat.value.trim();if(!n)return;let a=App.categories();if(a.some(c=>c.name.toLowerCase()===n.toLowerCase()))return alert("Category already exists");a.push({id:App.nextId(a),name:n,active:true});App.saveCategories(a);newcat.value="";render()}
+function editC(id){let a=App.categories(),c=a.find(x=>x.id===id),old=c.name,n=prompt("Category name",old);if(n===null||!n.trim())return;c.name=n.trim();App.saveCategories(a);let p=App.products();p.forEach(x=>{if(x.category===old)x.category=c.name});App.saveProducts(p);render()}
+function toggle(id){let a=App.categories(),c=a.find(x=>x.id===id);c.active=c.active===false?true:false;App.saveCategories(a);render()}
+function del(id){let a=App.categories(),c=a.find(x=>x.id===id);if(App.products().some(p=>p.category===c.name))return alert("Move or delete items in this category first.");if(confirm("Delete category?")){App.saveCategories(a.filter(x=>x.id!==id));render()}}
+function render(){rows.innerHTML="";App.categories().forEach(c=>{let tr=document.createElement('tr');tr.innerHTML=`<td><b>${c.name}</b></td><td>${c.active===false?'Disabled':'Active'}</td><td><button class="btn" onclick="editC(${c.id})">Edit</button> <button class="btn" onclick="toggle(${c.id})">${c.active===false?'Enable':'Disable'}</button> <button class="btn btn-bad" onclick="del(${c.id})">Delete</button></td>`;rows.appendChild(tr)})}render();
+</script></body></html>
