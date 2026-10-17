@@ -51,25 +51,80 @@ function showMessage(text) {
     '<div class="notice">' + text + '</div>';
 }
 
-function login() {
-  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
-  const password = document.getElementById("loginPassword").value;
+function login() {async function login() {
 
-  const user = App.read(App.K.users, []).find(function(item) {
-    return item.email === email && item.password === password;
-  });
+  const email =
+    document.getElementById("loginEmail")
+      .value
+      .trim()
+      .toLowerCase();
 
-  if (!user) {
-    showMessage("Incorrect email or password.");
+  const password =
+    document.getElementById("loginPassword")
+      .value;
+
+  if (!email || !password) {
+    showMessage("Please enter your email and password.");
     return;
   }
 
-  App.write(App.K.session, {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role
-  });
+  const { data, error } =
+    await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+  if (error) {
+    console.error(error);
+
+    showMessage(
+      "Login failed. Please check your email and password."
+    );
+
+    return;
+  }
+
+  const user = data.user;
+
+  const { data: profile, error: profileError } =
+    await supabaseClient
+      .from("profiles")
+      .select(
+        "id, business_id, full_name, role, active"
+      )
+      .eq("id", user.id)
+      .single();
+
+  if (profileError) {
+    console.error(profileError);
+
+    showMessage(
+      "Login worked, but your POS profile could not be loaded."
+    );
+
+    return;
+  }
+
+  if (profile.active === false) {
+    await supabaseClient.auth.signOut();
+
+    showMessage(
+      "This account is disabled."
+    );
+
+    return;
+  }
+
+  localStorage.setItem(
+    "sqpos_session",
+    JSON.stringify({
+      id: profile.id,
+      name: profile.full_name,
+      email: user.email,
+      role: profile.role,
+      business_id: profile.business_id
+    })
+  );
 
   window.location.href = "dashboard.html";
 }
