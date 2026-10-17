@@ -34,11 +34,295 @@ document.getElementById("page").innerHTML=`
 <button onclick="finish('Cash')">Cash</button><button onclick="finish('Card')">Card</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="closePay()">Cancel</button></div></div>
 `;
 
-let cart=[],type="",discount=0,activeCat="Favorites";
-function nextNo(){let o=App.orders();return o.length?Math.max(...o.map(x=>Number(x.orderNumber)||0))+1:1}orderno.textContent=nextNo();
-function cats(){return ["Favorites",...App.categories().filter(c=>c.active!==false).map(c=>c.name)]}
-function renderTabs(){tabs.innerHTML="";cats().forEach(c=>{let b=document.createElement('button');b.className='tab'+(c===activeCat?' active':'');b.textContent=c;b.onclick=()=>{activeCat=c;renderTabs();renderItems()};tabs.appendChild(b)})}
-function renderItems(){let q=search.value.trim().toLowerCase(),ps=App.products().filter(p=>p.active!==false);if(activeCat==="Favorites")ps=ps.filter(p=>p.favorite);else ps=ps.filter(p=>p.category===activeCat);if(q)ps=ps.filter(p=>p.name.toLowerCase().includes(q));grid.innerHTML="";ps.forEach(p=>{let b=document.createElement('button');b.className='tile';b.innerHTML=`<span class="cat">${p.category}</span><span class="name">${p.name}</span><span class="price">${App.money(p.price)}</span>`;b.onclick=()=>add(p);grid.appendChild(b)})}
+let cart = [];
+let type = "";
+let discount = 0;
+let activeCat = "Favorites";
+
+let cloudProducts = [];
+let cloudCategories = [];
+
+
+function nextNo() {
+
+  let o = App.orders();
+
+  return o.length
+    ? Math.max(
+        ...o.map(
+          x => Number(x.orderNumber) || 0
+        )
+      ) + 1
+    : 1;
+}
+
+
+orderno.textContent = nextNo();
+
+
+async function loadCloudMenu() {
+
+  const {
+    data: categoryData,
+    error: categoryError
+  } =
+    await supabaseClient
+      .from("categories")
+      .select(`
+        id,
+        name,
+        active,
+        sort_order
+      `)
+      .eq("active", true)
+      .order("sort_order", {
+        ascending: true
+      });
+
+
+  if (categoryError) {
+
+    console.error(
+      "Category error:",
+      categoryError
+    );
+
+    throw categoryError;
+  }
+
+
+  const {
+    data: productData,
+    error: productError
+  } =
+    await supabaseClient
+      .from("products")
+      .select(`
+        id,
+        name,
+        price,
+        active,
+        favorite,
+        sort_order,
+        category_id,
+        categories (
+          id,
+          name
+        )
+      `)
+      .eq("active", true)
+      .order("sort_order", {
+        ascending: true
+      });
+
+
+  if (productError) {
+
+    console.error(
+      "Product error:",
+      productError
+    );
+
+    throw productError;
+  }
+
+
+  cloudCategories =
+    categoryData || [];
+
+
+  cloudProducts =
+    (productData || []).map(
+      function(p) {
+
+        return {
+
+          id: p.id,
+
+          name: p.name,
+
+          price:
+            Number(p.price),
+
+          category:
+            p.categories
+              ? p.categories.name
+              : "Other",
+
+          favorite:
+            p.favorite === true,
+
+          active:
+            p.active !== false
+        };
+
+      }
+    );
+
+
+  console.log(
+    "Cloud categories:",
+    cloudCategories
+  );
+
+  console.log(
+    "Cloud products:",
+    cloudProducts
+  );
+}
+
+
+function cats() {
+
+  return [
+    "Favorites",
+    ...cloudCategories.map(
+      c => c.name
+    )
+  ];
+}
+
+
+function renderTabs() {
+
+  tabs.innerHTML = "";
+
+  cats().forEach(
+    function(c) {
+
+      let b =
+        document.createElement(
+          "button"
+        );
+
+      b.className =
+        "tab" +
+        (
+          c === activeCat
+            ? " active"
+            : ""
+        );
+
+      b.textContent = c;
+
+
+      b.onclick =
+        function() {
+
+          activeCat = c;
+
+          renderTabs();
+
+          renderItems();
+        };
+
+
+      tabs.appendChild(b);
+
+    }
+  );
+}
+
+
+function renderItems() {
+
+  let q =
+    search.value
+      .trim()
+      .toLowerCase();
+
+
+  let ps =
+    cloudProducts.filter(
+      p =>
+        p.active !== false
+    );
+
+
+  if (
+    activeCat ===
+    "Favorites"
+  ) {
+
+    ps =
+      ps.filter(
+        p =>
+          p.favorite === true
+      );
+
+  } else {
+
+    ps =
+      ps.filter(
+        p =>
+          p.category ===
+          activeCat
+      );
+  }
+
+
+  if (q) {
+
+    ps =
+      ps.filter(
+        p =>
+          p.name
+            .toLowerCase()
+            .includes(q)
+      );
+  }
+
+
+  grid.innerHTML = "";
+
+
+  if (!ps.length) {
+
+    grid.innerHTML =
+      '<p class="muted">No items found.</p>';
+
+    return;
+  }
+
+
+  ps.forEach(
+    function(p) {
+
+      let b =
+        document.createElement(
+          "button"
+        );
+
+      b.className =
+        "tile";
+
+
+      b.innerHTML = `
+        <span class="cat">
+          ${p.category}
+        </span>
+
+        <span class="name">
+          ${p.name}
+        </span>
+
+        <span class="price">
+          ${App.money(p.price)}
+        </span>
+      `;
+
+
+      b.onclick =
+        function() {
+          add(p);
+        };
+
+
+      grid.appendChild(b);
+
+    }
+  );
+}
 function add(p){let x=cart.find(i=>i.id===p.id);if(x)x.qty++;else cart.push({id:p.id,name:p.name,price:Number(p.price),category:p.category,qty:1});renderCart()}
 function customAmount(){let v=Number(prompt("Custom amount"));if(v>0){cart.push({id:"custom-"+Date.now(),name:"Custom amount",price:v,category:"Custom",qty:1});renderCart()}}
 function setType(t){type=t;dine.classList.toggle('btn-dark',t==="Dine In");take.classList.toggle('btn-dark',t==="Takeaway")}
@@ -51,5 +335,31 @@ function recallSale(){let h=App.held();if(!h.length){alert("No saved carts.");re
 function openPay(){if(!cart.length){alert("Add items first.");return}if(!type){alert("Choose Dine In or Takeaway.");return}payModal.classList.add('show')}
 function closePay(){payModal.classList.remove('show')}
 function finish(method){let sub=cart.reduce((n,i)=>n+i.price*i.qty,0),tot=sub-sub*discount/100,os=App.orders(),no=nextNo();os.push({id:App.nextId(os),orderNumber:no,orderType:type,paymentMethod:method,subtotal:sub,discountPercent:discount,total:tot,tableName:tableName.value.trim(),createdAt:new Date().toISOString(),items:cart.map(x=>({...x}))});App.saveOrders(os);closePay();alert(`Payment recorded\nOrder #${no}\n${method}\n${App.money(tot)}`);clearCart();orderno.textContent=nextNo()}
-renderTabs();renderItems();renderCart();
+async function startPOS() {
+
+  try {
+
+    await loadCloudMenu();
+
+    renderTabs();
+    renderItems();
+    renderCart();
+
+  } catch (error) {
+
+    console.error(
+      "Cloud menu failed:",
+      error
+    );
+
+    alert(
+      "Could not load the cloud menu. Please check your internet connection and Supabase."
+    );
+
+    renderCart();
+  }
+}
+
+
+startPOS();
 </script></body></html>
