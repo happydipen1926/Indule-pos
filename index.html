@@ -1,12 +1,78 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Indulge POS Login</title>
-<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body>
-<div class="container"><div class="login"><div class="card">
-<h1>Indulge POS</h1><p class="muted">Sign in to continue</p><div id="msg"></div>
-<label>Email</label><input id="email" type="email" placeholder="you@example.com">
-<label style="margin-top:10px">Password</label><input id="password" type="password">
-<button class="btn btn-dark" style="width:100%;margin-top:14px" onclick="login()">Sign in</button>
-<p style="text-align:center">New account? <a href="register.html"><b>Create account</b></a></p>
-</div><div class="notice">This version works immediately on one browser/device. Use Backup regularly. Cloud database can be connected later for multi-device use.</div></div></div>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Indulge POS Login</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="login">
+    <div class="card">
+      <h1>Indulge POS</h1>
+      <p class="muted">Sign in to continue</p>
+      <div id="msg"></div>
+
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="you@example.com">
+
+      <label style="margin-top:10px">Password</label>
+      <input id="loginPassword" type="password">
+
+      <button id="loginBtn" class="btn btn-dark" style="width:100%;margin-top:14px">
+        Sign in
+      </button>
+
+      <p style="text-align:center">
+        New account? <a href="register.html"><b>Create account</b></a>
+      </p>
+    </div>
+
+    <div class="notice">
+      This version stores login and POS data in this browser only.
+      Use Backup regularly. For multi-device use, connect a cloud database later.
+    </div>
+  </div>
+</div>
+
 <script>
-function login(){let e=email.value.trim().toLowerCase(),p=password.value,u=App.read(App.K.users,[]).find(x=>x.email===e&&x.password===p);if(!u){msg.innerHTML='<div class="notice">Incorrect email or password.</div>';return}App.write(App.K.session,{id:u.id,name:u.name,email:u.email,role:u.role});location.href='dashboard.html'}
-</script></body></html>
+document.getElementById("loginBtn").addEventListener("click", login);
+
+document.getElementById("loginPassword").addEventListener("keydown", function(event) {
+  if (event.key === "Enter") login();
+});
+
+function showMessage(text) {
+  document.getElementById("msg").innerHTML =
+    '<div class="notice">' + text + '</div>';
+}
+
+function login() {
+  const email = document.getElementById("loginEmail").value.trim().toLowerCase();
+  const password = document.getElementById("loginPassword").value;
+
+  const user = App.read(App.K.users, []).find(function(item) {
+    return item.email === email && item.password === password;
+  });
+
+  if (!user) {
+    showMessage("Incorrect email or password.");
+    return;
+  }
+
+  App.write(App.K.session, {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role
+  });
+
+  window.location.href = "dashboard.html";
+}
+</script>
+</body>
+</html>

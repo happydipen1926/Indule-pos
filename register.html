@@ -1,13 +1,102 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create Account</title>
-<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body>
-<div class="container"><div class="login"><div class="card"><h1>Create account</h1><div id="msg"></div>
-<label>Business Name</label><input id="business" value="Indulge Cafe">
-<label style="margin-top:10px">Your Name</label><input id="name">
-<label style="margin-top:10px">Email</label><input id="email" type="email">
-<label style="margin-top:10px">Password</label><input id="password" type="password">
-<label style="margin-top:10px">Confirm Password</label><input id="confirm" type="password">
-<button class="btn btn-dark" style="width:100%;margin-top:14px" onclick="reg()">Create account</button>
-<p style="text-align:center"><a href="index.html">Back to sign in</a></p></div></div></div>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Create Account</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="data.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="login">
+    <div class="card">
+      <h1>Create account</h1>
+      <div id="msg"></div>
+
+      <label>Business Name</label>
+      <input id="businessName" value="Indulge Cafe">
+
+      <label style="margin-top:10px">Your Name</label>
+      <input id="ownerName">
+
+      <label style="margin-top:10px">Email</label>
+      <input id="emailAddress" type="email">
+
+      <label style="margin-top:10px">Password</label>
+      <input id="passwordField" type="password">
+
+      <label style="margin-top:10px">Confirm Password</label>
+      <input id="confirmPasswordField" type="password">
+
+      <button id="createBtn" class="btn btn-dark" style="width:100%;margin-top:14px">
+        Create account
+      </button>
+
+      <p style="text-align:center"><a href="index.html">Back to sign in</a></p>
+    </div>
+  </div>
+</div>
+
 <script>
-function reg(){let b=business.value.trim(),n=name.value.trim(),e=email.value.trim().toLowerCase(),p=password.value,c=confirm.value;if(!b||!n||!e||p.length<6){msg.innerHTML='<div class="notice">Complete all fields. Password minimum 6 characters.</div>';return}if(p!==c){msg.innerHTML='<div class="notice">Passwords do not match.</div>';return}let a=App.read(App.K.users,[]);if(a.some(x=>x.email===e)){msg.innerHTML='<div class="notice">Email already exists.</div>';return}a.push({id:App.nextId(a),name:n,email:e,password:p,role:'owner'});App.write(App.K.users,a);let s=App.settings();s.businessName=b;App.saveSettings(s);msg.innerHTML='<div class="notice">Account created. Redirecting…</div>';setTimeout(()=>location.href='index.html',600)}
-</script></body></html>
+document.getElementById("createBtn").addEventListener("click", createAccount);
+
+function showMessage(text) {
+  document.getElementById("msg").innerHTML =
+    '<div class="notice">' + text + '</div>';
+}
+
+function createAccount() {
+  const businessName = document.getElementById("businessName").value.trim();
+  const ownerName = document.getElementById("ownerName").value.trim();
+  const email = document.getElementById("emailAddress").value.trim().toLowerCase();
+  const password = document.getElementById("passwordField").value;
+  const confirmPassword = document.getElementById("confirmPasswordField").value;
+
+  if (!businessName || !ownerName || !email || !password || !confirmPassword) {
+    showMessage("Please complete all fields.");
+    return;
+  }
+
+  if (password.length < 6) {
+    showMessage("Password must be at least 6 characters.");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showMessage("Passwords do not match.");
+    return;
+  }
+
+  const users = App.read(App.K.users, []);
+
+  if (users.some(user => user.email === email)) {
+    showMessage("An account with this email already exists.");
+    return;
+  }
+
+  users.push({
+    id: App.nextId(users),
+    name: ownerName,
+    email: email,
+    password: password,
+    role: "owner"
+  });
+
+  App.write(App.K.users, users);
+
+  const settings = App.settings();
+  settings.businessName = businessName;
+  App.saveSettings(settings);
+
+  showMessage("Account created successfully. Opening sign in page...");
+
+  setTimeout(function () {
+    window.location.href = "index.html";
+  }, 800);
+}
+</script>
+</body>
+</html>
