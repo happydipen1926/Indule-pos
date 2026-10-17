@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Indulge Cafe POS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f5f5;
+        }
+
+        header {
+            background: #222;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        .categories button {
+            padding: 15px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .products {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .product {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .cart {
+            margin-top: 30px;
+            background: white;
+            padding: 20px;
+        }
+
+        .payment button {
+            padding: 15px 30px;
+            margin: 5px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Indulge Cafe POS</h1>
+</header>
+
+<div class="container">
+
+    <h2>Categories</h2>
+
+    <div class="categories">
+        <button onclick="showCategory('Coffee')">Coffee</button>
+        <button onclick="showCategory('Breakfast')">Breakfast</button>
+        <button onclick="showCategory('Burgers')">Burgers</button>
+        <button onclick="showCategory('Fish & Chips')">Fish & Chips</button>
+    </div>
+
+    <h2>Products</h2>
+
+    <div id="products" class="products"></div>
+
+    <div class="cart">
+
+        <h2>Order</h2>
+
+        <div id="cartItems"></div>
+
+        <h2>
+            Total: $<span id="total">0.00</span>
+        </h2>
+
+        <div class="payment">
+            <button onclick="payCash()">Cash</button>
+            <button onclick="payCard()">Card</button>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const products = [
+    {name: "Flat White", price: 5.50, category: "Coffee"},
+    {name: "Cappuccino", price: 5.50, category: "Coffee"},
+    {name: "Latte", price: 5.50, category: "Coffee"},
+
+    {name: "Bacon & Eggs", price: 18.99, category: "Breakfast"},
+    {name: "Beans on Toast", price: 10.99, category: "Breakfast"},
+
+    {name: "Chicken Burger", price: 13.99, category: "Burgers"},
+    {name: "Beef Burger", price: 15.99, category: "Burgers"},
+
+    {name: "Hoki", price: 11.00, category: "Fish & Chips"},
+    {name: "Pearl Perch", price: 14.00, category: "Fish & Chips"}
+];
+
+let cart = [];
+
+function showCategory(category) {
+
+    const area = document.getElementById("products");
+
+    area.innerHTML = "";
+
+    products
+        .filter(product => product.category === category)
+        .forEach(product => {
+
+            const button = document.createElement("button");
+
+            button.className = "product";
+
+            button.innerHTML =
+                product.name +
+                "<br><strong>$" +
+                product.price.toFixed(2) +
+                "</strong>";
+
+            button.onclick = function() {
+                addToCart(product);
+            };
+
+            area.appendChild(button);
+
+        });
+}
+
+function addToCart(product) {
+
+    const existing = cart.find(
+        item => item.name === product.name
+    );
+
+    if (existing) {
+        existing.quantity++;
+    } else {
+        cart.push({
+            name: product.name,
+            price: product.price,
+            quantity: 1
+        });
+    }
+
+    updateCart();
+}
+
+function updateCart() {
+
+    const cartArea =
+        document.getElementById("cartItems");
+
+    cartArea.innerHTML = "";
+
+    let total = 0;
+
+    cart.forEach((item, index) => {
+
+        total += item.price * item.quantity;
+
+        const row = document.createElement("p");
+
+        row.innerHTML = `
+            ${item.name}
+            - $${item.price.toFixed(2)}
+
+            <button onclick="decrease(${index})">-</button>
+
+            ${item.quantity}
+
+            <button onclick="increase(${index})">+</button>
+
+            = $${(item.price * item.quantity).toFixed(2)}
+        `;
+
+        cartArea.appendChild(row);
+
+    });
+
+    document.getElementById("total").innerText =
+        total.toFixed(2);
+}
+
+function increase(index) {
+
+    cart[index].quantity++;
+
+    updateCart();
+}
+
+function decrease(index) {
+
+    cart[index].quantity--;
+
+    if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
+    }
+
+    updateCart();
+}
+
+function payCash() {
+
+    if (cart.length === 0) {
+        alert("Please add items first.");
+        return;
+    }
+
+    alert("Cash payment completed.");
+
+    cart = [];
+
+    updateCart();
+}
+
+function payCard() {
+
+    if (cart.length === 0) {
+        alert("Please add items first.");
+        return;
+    }
+
+    alert("Card payment recorded.");
+
+    cart = [];
+
+    updateCart();
+}
+
+showCategory("Coffee");
+
+</script>
+
+</body>
+</html>
