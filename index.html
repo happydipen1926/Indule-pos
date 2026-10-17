@@ -167,27 +167,86 @@
 
 const products = [
 
-    {name: "Flat White", price: 5.50, category: "Coffee"},
-    {name: "Cappuccino", price: 5.50, category: "Coffee"},
-    {name: "Latte", price: 5.50, category: "Coffee"},
+const products = [
 
-    {name: "Bacon & Eggs", price: 18.99, category: "Breakfast"},
-    {name: "Beans on Toast", price: 10.99, category: "Breakfast"},
+    // =========================
+    // BREAKFAST
+    // =========================
 
-    {name: "Chicken Burger", price: 13.99, category: "Burgers"},
-    {name: "Beef Burger", price: 15.99, category: "Burgers"},
-    {name: "Veggie Burger", price: 14.99, category: "Burgers"},
+    {name: "Simply Eggs", price: 13.00, category: "Breakfast"},
+    {name: "Smashed Avo", price: 17.00, category: "Breakfast"},
+    {name: "Eggs Benny", price: 22.00, category: "Breakfast"},
+    {name: "Delectable Bacon & Egg Roll", price: 17.00, category: "Breakfast"},
+    {name: "The Forager", price: 25.00, category: "Breakfast"},
+    {name: "The Big Breakfast", price: 25.00, category: "Breakfast"},
+    {name: "Indulge Wrap", price: 15.00, category: "Breakfast"},
+    {name: "Children's Breakfast", price: 11.00, category: "Breakfast"},
+    {name: "Vegemite on Toast", price: 5.50, category: "Breakfast"},
+    {name: "Ham & Cheese Toastie", price: 8.00, category: "Breakfast"},
+    {name: "Cheese Toastie", price: 6.00, category: "Breakfast"},
 
-    {name: "Hoki", price: 11.00, category: "Fish & Chips"},
-    {name: "Pearl Perch", price: 14.00, category: "Fish & Chips"},
-    {name: "6 Calamari", price: 10.00, category: "Fish & Chips"},
-    {name: "12 Calamari", price: 17.00, category: "Fish & Chips"},
+    // Breakfast Extras
 
-    {name: "Chicken Schnitzel", price: 21.99, category: "Dinner"},
-    {name: "Classic Parmy", price: 25.99, category: "Dinner"},
-    {name: "Rib Eye Steak 400g", price: 42.99, category: "Dinner"},
+    {name: "Extra Hash Brown", price: 2.50, category: "Breakfast Extras"},
+    {name: "Extra Rasher Bacon", price: 3.00, category: "Breakfast Extras"},
+    {name: "Extra Mushrooms", price: 3.00, category: "Breakfast Extras"},
+    {name: "Extra Avocado", price: 3.00, category: "Breakfast Extras"},
+    {name: "Extra Chipolata", price: 2.50, category: "Breakfast Extras"},
+    {name: "Extra Egg", price: 3.00, category: "Breakfast Extras"},
+    {name: "Extra Tomato Relish", price: 2.00, category: "Breakfast Extras"},
+    {name: "Extra Grilled Tomato", price: 3.00, category: "Breakfast Extras"},
+    {name: "Extra Halloumi", price: 3.00, category: "Breakfast Extras"},
 
-    {name: "Hot Box Item", price: 8.99, category: "Hot Box"}
+    // =========================
+    // BURGERS
+    // =========================
+
+    {name: "Bacon Egg Burger", price: 8.99, category: "Burgers"},
+    {name: "Cheese Burger", price: 11.99, category: "Burgers"},
+    {name: "Ham Burger", price: 12.99, category: "Burgers"},
+    {name: "Ham Works Burger", price: 14.99, category: "Burgers"},
+    {name: "Steak Burger", price: 12.99, category: "Burgers"},
+    {name: "Steak Works Burger", price: 14.99, category: "Burgers"},
+    {name: "Fish Burger", price: 12.99, category: "Burgers"},
+    {name: "Classic New Yorker", price: 12.99, category: "Burgers"},
+    {name: "Smokin Hot Burger", price: 13.99, category: "Burgers"},
+    {name: "Double BBQ Cheese Burger", price: 18.99, category: "Burgers"},
+    {name: "BBQ Chicken Burger", price: 13.99, category: "Burgers"},
+    {name: "Peri-Peri Chicken Burger", price: 13.99, category: "Burgers"},
+    {name: "Southern Fry Chicken Burger", price: 9.99, category: "Burgers"},
+    {name: "Tropical Hawaiian Burger", price: 13.99, category: "Burgers"},
+    {name: "The Hulk Burger", price: 22.99, category: "Burgers"},
+    {name: "Beef Junior Burger", price: 9.99, category: "Burgers"},
+    {name: "Chicken Junior Burger", price: 9.99, category: "Burgers"},
+    {name: "Beef Burger", price: 12.99, category: "Burgers"},
+
+    // Burger Combos
+
+    {name: "Small Chips + 350ml Drink", price: 5.99, category: "Combo Deals"},
+    {name: "Large Chips + 600ml Drink", price: 8.99, category: "Combo Deals"},
+
+    // =========================
+    // SNACKS / HOT BOX
+    // =========================
+
+    {name: "Beef Croquet", price: 3.00, category: "Hot Box"},
+    {name: "Cheese & Bacon Battered Sausage", price: 4.90, category: "Hot Box"},
+    {name: "Chiko Roll", price: 4.30, category: "Hot Box"},
+    {name: "Chicken Nugget", price: 1.00, category: "Hot Box"},
+    {name: "Chicken Wing Ding", price: 3.50, category: "Hot Box"},
+    {name: "Chicken & Garlic Ball", price: 2.50, category: "Hot Box"},
+    {name: "Corn Jack", price: 4.00, category: "Hot Box"},
+    {name: "Crumbed Sausage", price: 3.50, category: "Hot Box"},
+    {name: "Dim Sim Small", price: 2.50, category: "Hot Box"},
+    {name: "Hash Brown", price: 3.00, category: "Hot Box"},
+    {name: "Kabana", price: 4.90, category: "Hot Box"},
+    {name: "Pineapple Fritter", price: 3.50, category: "Hot Box"},
+    {name: "Pluto Pup", price: 4.70, category: "Hot Box"},
+    {name: "Potato Scallop Homemade", price: 2.00, category: "Hot Box"},
+    {name: "Pork Riblet", price: 4.70, category: "Hot Box"},
+    {name: "Sweet Chilli Tender", price: 3.00, category: "Hot Box"},
+    {name: "Spring Roll Large", price: 4.30, category: "Hot Box"},
+    {name: "Spring Roll Small", price: 2.00, category: "Hot Box"},
 
 ];
 
