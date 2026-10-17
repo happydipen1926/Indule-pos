@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <title>Supabase Menu Test</title>
+
+  <link rel="stylesheet" href="styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Supabase Menu Test</h1>
+
+    <p id="status">
+      Checking Supabase...
+    </p>
+
+    <h2>Categories</h2>
+
+    <div id="categories"></div>
+
+    <h2>Products</h2>
+
+    <div id="products"></div>
+
+  </div>
+
+<script>
+
+async function checkLogin() {
+
+  const {
+    data: { session },
+    error
+  } = await supabaseClient.auth.getSession();
+
+  if (error) {
+    console.error(error);
+  }
+
+  if (!session) {
+
+    document.getElementById("status").textContent =
+      "You are not logged in.";
+
+    setTimeout(function () {
+      window.location.href = "index.html";
+    }, 1500);
+
+    return false;
+  }
+
+  return true;
+}
+
+
+async function loadCategories() {
+
+  const { data, error } =
+    await supabaseClient
+      .from("categories")
+      .select("id, name, active, sort_order")
+      .eq("active", true)
+      .order("sort_order", {
+        ascending: true
+      });
+
+  if (error) {
+
+    console.error(error);
+
+    document.getElementById("categories").innerHTML =
+      "<p>Category error: " +
+      error.message +
+      "</p>";
+
+    return;
+  }
+
+  if (!data.length) {
+
+    document.getElementById("categories").innerHTML =
+      "<p>No categories found.</p>";
+
+    return;
+  }
+
+  document.getElementById("categories").innerHTML =
+    data.map(function(category) {
+
+      return `
+        <div style="
+          padding:10px;
+          margin:5px 0;
+          border:1px solid #ddd;
+          border-radius:8px;
+        ">
+          ID: ${category.id}<br>
+          ${category.name}
+        </div>
+      `;
+
+    }).join("");
+}
+
+
+async function loadProducts() {
+
+  const { data, error } =
+    await supabaseClient
+      .from("products")
+      .select(`
+        id,
+        name,
+        price,
+        active,
+        favorite,
+        category_id,
+        categories (
+          name
+        )
+      `)
+      .eq("active", true)
+      .order("sort_order", {
+        ascending: true
+      });
+
+  if (error) {
+
+    console.error(error);
+
+    document.getElementById("products").innerHTML =
+      "<p>Product error: " +
+      error.message +
+      "</p>";
+
+    return;
+  }
+
+  if (!data.length) {
+
+    document.getElementById("products").innerHTML =
+      "<p>No products found.</p>";
+
+    return;
+  }
+
+  document.getElementById("products").innerHTML =
+    data.map(function(product) {
+
+      const categoryName =
+        product.categories
+          ? product.categories.name
+          : "No category";
+
+      return `
+        <div style="
+          padding:14px;
+          margin:8px 0;
+          border:1px solid #ddd;
+          border-radius:8px;
+        ">
+          <strong>${product.name}</strong><br>
+          Category: ${categoryName}<br>
+          Price: $${Number(product.price).toFixed(2)}
+        </div>
+      `;
+
+    }).join("");
+}
+
+
+async function startTest() {
+
+  const loggedIn =
+    await checkLogin();
+
+  if (!loggedIn) {
+    return;
+  }
+
+  document.getElementById("status").textContent =
+    "Supabase connected successfully.";
+
+  await loadCategories();
+  await loadProducts();
+}
+
+
+startTest();
+
+</script>
+
+</body>
+</html>
