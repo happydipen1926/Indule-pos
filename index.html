@@ -1,42 +1,284 @@
-Indulge Cafe POS
-Order #1
-Order Type
-Dine In Takeaway
-Selected: Not selected
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Indulge Cafe POS</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Arial,sans-serif; background:#f4f4f4; color:#222; }
+    header { background:#222; color:#fff; padding:16px; text-align:center; position:sticky; top:0; z-index:10; }
+    header h1 { margin:0 0 6px; }
+    nav { margin-top:10px; }
+    nav a { color:#fff; text-decoration:none; border:1px solid #777; padding:8px 12px; border-radius:6px; margin:0 4px; }
+    .layout { display:grid; grid-template-columns:2fr 1fr; gap:16px; padding:16px; }
+    .panel { background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+    button { cursor:pointer; }
+    .order-type button, .categories button, .payment button, .action-btn {
+      padding:12px 16px; margin:4px; border:1px solid #aaa; border-radius:8px; background:#fff; font-size:16px;
+    }
+    .selected { background:#222 !important; color:#fff !important; border-color:#222 !important; }
+    .categories { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+    .products { display:grid; grid-template-columns:repeat(3,minmax(140px,1fr)); gap:10px; }
+    .product {
+      border:1px solid #ccc; background:#fff; border-radius:10px; min-height:95px; padding:14px;
+      font-size:16px; display:flex; flex-direction:column; justify-content:center; align-items:center;
+    }
+    .product strong { margin-top:8px; font-size:18px; }
+    .cart-row { border-bottom:1px solid #e5e5e5; padding:10px 0; }
+    .qty-btn, .remove-btn { padding:5px 9px; margin:4px; }
+    .total { font-size:26px; font-weight:bold; margin-top:16px; }
+    .cash { background:#eaf7ea !important; }
+    .card { background:#eaf1ff !important; }
+    .danger { background:#ffecec !important; }
+    .muted { color:#666; }
+    @media (max-width:900px){
+      .layout{ grid-template-columns:1fr; }
+      .products{ grid-template-columns:repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
 
-Categories
-Breakfast
-Breakfast Extras
-Burgers
-Combo Deals
-Hot Box
-Fish & Seafood
-Products
-Simply Eggs
-$13.00
-Smashed Avo
-$17.00
-Eggs Benny
-$22.00
-Delectable Bacon & Egg Roll
-$17.00
-The Forager
-$25.00
-The Big Breakfast
-$25.00
-Indulge Wrap
-$15.00
-Children's Breakfast
-$11.00
-Vegemite on Toast
-$5.50
-Ham & Cheese Toastie
-$8.00
-Cheese Toastie
-$6.00
-Order
-No items yet.
+<header>
+  <h1>Indulge Cafe POS</h1>
+  <div>Order #<span id="orderNumber">1</span></div>
+  <nav><a href="admin.html">Admin / Edit Menu</a></nav>
+</header>
 
-Total: $0.00
-Cash Card
-Clear Order Print Receipt
+<div class="layout">
+  <section class="panel">
+    <h2>Order Type</h2>
+    <div class="order-type">
+      <button id="dineBtn" onclick="setOrderType('Dine In')">Dine In</button>
+      <button id="takeBtn" onclick="setOrderType('Takeaway')">Takeaway</button>
+    </div>
+    <p>Selected: <strong id="orderTypeDisplay">Not selected</strong></p>
+
+    <h2>Categories</h2>
+    <div class="categories" id="categoryButtons"></div>
+
+    <h2>Products</h2>
+    <div id="products" class="products"></div>
+  </section>
+
+  <aside class="panel">
+    <h2>Order</h2>
+    <div id="cartItems"><p class="muted">No items yet.</p></div>
+    <div class="total">Total: $<span id="total">0.00</span></div>
+
+    <div class="payment" style="margin-top:16px;">
+      <button class="cash" onclick="pay('Cash')">Cash</button>
+      <button class="card" onclick="pay('Card')">Card</button>
+    </div>
+
+    <button class="action-btn danger" onclick="clearOrder()">Clear Order</button>
+    <button class="action-btn" onclick="printReceipt()">Print Receipt</button>
+  </aside>
+</div>
+
+<script>
+const DEFAULT_PRODUCTS = [
+  {id:1,name:"Simply Eggs",price:13.00,category:"Breakfast",active:true},
+  {id:2,name:"Smashed Avo",price:17.00,category:"Breakfast",active:true},
+  {id:3,name:"Eggs Benny",price:22.00,category:"Breakfast",active:true},
+  {id:4,name:"Delectable Bacon & Egg Roll",price:17.00,category:"Breakfast",active:true},
+  {id:5,name:"The Forager",price:25.00,category:"Breakfast",active:true},
+  {id:6,name:"The Big Breakfast",price:25.00,category:"Breakfast",active:true},
+  {id:7,name:"Indulge Wrap",price:15.00,category:"Breakfast",active:true},
+  {id:8,name:"Children's Breakfast",price:11.00,category:"Breakfast",active:true},
+  {id:9,name:"Vegemite on Toast",price:5.50,category:"Breakfast",active:true},
+  {id:10,name:"Ham & Cheese Toastie",price:8.00,category:"Breakfast",active:true},
+  {id:11,name:"Cheese Toastie",price:6.00,category:"Breakfast",active:true},
+
+  {id:12,name:"Extra Hash Brown",price:2.50,category:"Breakfast Extras",active:true},
+  {id:13,name:"Extra Rasher Bacon",price:3.00,category:"Breakfast Extras",active:true},
+  {id:14,name:"Extra Mushrooms",price:3.00,category:"Breakfast Extras",active:true},
+  {id:15,name:"Extra Avocado",price:3.00,category:"Breakfast Extras",active:true},
+  {id:16,name:"Extra Chipolata",price:2.50,category:"Breakfast Extras",active:true},
+  {id:17,name:"Extra Egg",price:3.00,category:"Breakfast Extras",active:true},
+  {id:18,name:"Extra Tomato Relish",price:2.00,category:"Breakfast Extras",active:true},
+  {id:19,name:"Extra Grilled Tomato",price:3.00,category:"Breakfast Extras",active:true},
+  {id:20,name:"Extra Halloumi",price:3.00,category:"Breakfast Extras",active:true},
+
+  {id:21,name:"Bacon Egg Burger",price:8.99,category:"Burgers",active:true},
+  {id:22,name:"Cheese Burger",price:11.99,category:"Burgers",active:true},
+  {id:23,name:"Ham Burger",price:12.99,category:"Burgers",active:true},
+  {id:24,name:"Ham Works Burger",price:14.99,category:"Burgers",active:true},
+  {id:25,name:"Steak Burger",price:12.99,category:"Burgers",active:true},
+  {id:26,name:"Steak Works Burger",price:14.99,category:"Burgers",active:true},
+  {id:27,name:"Fish Burger",price:12.99,category:"Burgers",active:true},
+  {id:28,name:"Classic New Yorker",price:12.99,category:"Burgers",active:true},
+  {id:29,name:"Smokin Hot Burger",price:13.99,category:"Burgers",active:true},
+  {id:30,name:"Double BBQ Cheese Burger",price:18.99,category:"Burgers",active:true},
+  {id:31,name:"BBQ Chicken Burger",price:13.99,category:"Burgers",active:true},
+  {id:32,name:"Peri-Peri Chicken Burger",price:13.99,category:"Burgers",active:true},
+  {id:33,name:"Southern Fry Chicken Burger",price:9.99,category:"Burgers",active:true},
+  {id:34,name:"Tropical Hawaiian Burger",price:13.99,category:"Burgers",active:true},
+  {id:35,name:"The Hulk Burger",price:22.99,category:"Burgers",active:true},
+  {id:36,name:"Beef Junior Burger",price:9.99,category:"Burgers",active:true},
+  {id:37,name:"Chicken Junior Burger",price:9.99,category:"Burgers",active:true},
+  {id:38,name:"Beef Burger",price:12.99,category:"Burgers",active:true},
+
+  {id:39,name:"Small Chips + 350ml Drink",price:5.99,category:"Combo Deals",active:true},
+  {id:40,name:"Large Chips + 600ml Drink",price:8.99,category:"Combo Deals",active:true},
+
+  {id:41,name:"Beef Croquet",price:3.00,category:"Hot Box",active:true},
+  {id:42,name:"Cheese & Bacon Battered Sausage",price:4.90,category:"Hot Box",active:true},
+  {id:43,name:"Chiko Roll",price:4.30,category:"Hot Box",active:true},
+  {id:44,name:"Chicken Nugget",price:1.00,category:"Hot Box",active:true},
+  {id:45,name:"Chicken Wing Ding",price:3.50,category:"Hot Box",active:true},
+  {id:46,name:"Chicken & Garlic Ball",price:2.50,category:"Hot Box",active:true},
+  {id:47,name:"Corn Jack",price:4.00,category:"Hot Box",active:true},
+  {id:48,name:"Crumbed Sausage",price:3.50,category:"Hot Box",active:true},
+  {id:49,name:"Dim Sim - Small",price:2.50,category:"Hot Box",active:true},
+  {id:50,name:"Hash Brown",price:3.00,category:"Hot Box",active:true},
+  {id:51,name:"Kabana",price:4.90,category:"Hot Box",active:true},
+  {id:52,name:"Pineapple Fritter",price:3.50,category:"Hot Box",active:true},
+  {id:53,name:"Pluto Pup",price:4.70,category:"Hot Box",active:true},
+  {id:54,name:"Potato Scallop - Homemade",price:2.00,category:"Hot Box",active:true},
+  {id:55,name:"Pork Riblet",price:4.70,category:"Hot Box",active:true},
+  {id:56,name:"Sweet Chilli Tender",price:3.00,category:"Hot Box",active:true},
+  {id:57,name:"Spring Roll - Large",price:4.30,category:"Hot Box",active:true},
+  {id:58,name:"Spring Roll - Small",price:2.00,category:"Hot Box",active:true},
+  {id:59,name:"Kids 4 Nuggets & Chips",price:5.50,category:"Hot Box",active:true},
+  {id:60,name:"Chips",price:3.00,category:"Hot Box",active:true},
+  {id:61,name:"Wedges/Gems",price:5.00,category:"Hot Box",active:true},
+  {id:62,name:"Add Cheese & Gravy",price:3.00,category:"Hot Box",active:true},
+
+  {id:63,name:"Hoki",price:11.00,category:"Fish & Seafood",active:true},
+  {id:64,name:"Reef Fish",price:14.00,category:"Fish & Seafood",active:true},
+  {id:65,name:"6 Calamari",price:10.00,category:"Fish & Seafood",active:true},
+  {id:66,name:"12 Calamari",price:17.00,category:"Fish & Seafood",active:true},
+  {id:67,name:"Seafood Stick",price:3.50,category:"Fish & Seafood",active:true},
+  {id:68,name:"Fish Bite",price:2.50,category:"Fish & Seafood",active:true},
+  {id:69,name:"Prawn Cutlet",price:3.50,category:"Fish & Seafood",active:true}
+];
+
+function getProducts(){
+  const stored = localStorage.getItem("indulgeProducts");
+  if(stored){
+    try { return JSON.parse(stored); } catch(e){}
+  }
+  localStorage.setItem("indulgeProducts", JSON.stringify(DEFAULT_PRODUCTS));
+  return DEFAULT_PRODUCTS;
+}
+
+let products = getProducts();
+let cart = [];
+let orderType = "";
+let orderNumber = Number(localStorage.getItem("orderNumber") || 1);
+document.getElementById("orderNumber").textContent = orderNumber;
+
+function renderCategories(){
+  products = getProducts();
+  const activeProducts = products.filter(p => p.active !== false);
+  const categories = [...new Set(activeProducts.map(p => p.category))];
+  const wrap = document.getElementById("categoryButtons");
+  wrap.innerHTML = "";
+  categories.forEach((category, i) => {
+    const btn = document.createElement("button");
+    btn.textContent = category;
+    btn.onclick = () => showCategory(category);
+    wrap.appendChild(btn);
+  });
+  if(categories.length) showCategory(categories[0]);
+  else document.getElementById("products").innerHTML = '<p class="muted">No active products.</p>';
+}
+
+function showCategory(category){
+  products = getProducts();
+  const area = document.getElementById("products");
+  area.innerHTML = "";
+  const filtered = products.filter(p => p.category === category && p.active !== false);
+  filtered.forEach(product => {
+    const button = document.createElement("button");
+    button.className = "product";
+    button.innerHTML = `${product.name}<strong>$${Number(product.price).toFixed(2)}</strong>`;
+    button.onclick = () => addToCart(product);
+    area.appendChild(button);
+  });
+}
+
+function setOrderType(type){
+  orderType = type;
+  document.getElementById("orderTypeDisplay").textContent = type;
+  document.getElementById("dineBtn").classList.toggle("selected", type === "Dine In");
+  document.getElementById("takeBtn").classList.toggle("selected", type === "Takeaway");
+}
+
+function addToCart(product){
+  const existing = cart.find(i => i.id === product.id);
+  if(existing) existing.quantity++;
+  else cart.push({id:product.id,name:product.name,price:Number(product.price),quantity:1});
+  updateCart();
+}
+
+function updateCart(){
+  const area = document.getElementById("cartItems");
+  area.innerHTML = "";
+  let total = 0;
+  if(!cart.length) area.innerHTML = '<p class="muted">No items yet.</p>';
+  cart.forEach((item,index) => {
+    total += item.price * item.quantity;
+    const row = document.createElement("div");
+    row.className = "cart-row";
+    row.innerHTML = `
+      <strong>${item.name}</strong><br>
+      $${item.price.toFixed(2)}
+      <button class="qty-btn" onclick="decrease(${index})">-</button>
+      ${item.quantity}
+      <button class="qty-btn" onclick="increase(${index})">+</button>
+      = $${(item.price*item.quantity).toFixed(2)}
+      <button class="remove-btn" onclick="removeItem(${index})">Remove</button>`;
+    area.appendChild(row);
+  });
+  document.getElementById("total").textContent = total.toFixed(2);
+}
+
+function increase(index){ cart[index].quantity++; updateCart(); }
+function decrease(index){ cart[index].quantity--; if(cart[index].quantity<=0) cart.splice(index,1); updateCart(); }
+function removeItem(index){ cart.splice(index,1); updateCart(); }
+function clearOrder(){ if(confirm("Clear the whole order?")){ cart=[]; updateCart(); } }
+
+function pay(method){
+  if(!cart.length){ alert("Please add items first."); return; }
+  if(!orderType){ alert("Please select Dine In or Takeaway."); return; }
+
+  const total = document.getElementById("total").textContent;
+  const sales = JSON.parse(localStorage.getItem("indulgeSales") || "[]");
+  sales.push({
+    orderNumber,
+    orderType,
+    paymentMethod: method,
+    total: Number(total),
+    items: cart,
+    date: new Date().toISOString()
+  });
+  localStorage.setItem("indulgeSales", JSON.stringify(sales));
+
+  alert(`Order #${orderNumber}\n${orderType}\nPayment: ${method}\nTotal: $${total}`);
+
+  orderNumber++;
+  localStorage.setItem("orderNumber", orderNumber);
+  document.getElementById("orderNumber").textContent = orderNumber;
+  cart=[];
+  orderType="";
+  document.getElementById("orderTypeDisplay").textContent="Not selected";
+  document.getElementById("dineBtn").classList.remove("selected");
+  document.getElementById("takeBtn").classList.remove("selected");
+  updateCart();
+}
+
+function printReceipt(){
+  if(!cart.length){ alert("Add items before printing."); return; }
+  window.print();
+}
+
+renderCategories();
+updateCart();
+
+window.addEventListener("storage", () => renderCategories());
+</script>
+</body>
+</html>
