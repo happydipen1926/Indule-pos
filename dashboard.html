@@ -7,12 +7,25 @@ document.getElementById("page").innerHTML=`
 <div class="stat"><div class="k">Today's orders</div><div class="v" id="o">0</div></div>
 <div class="stat"><div class="k">Active items</div><div class="v" id="p">0</div></div>
 <div class="stat"><div class="k">Average order</div><div class="v" id="a">$0.00</div></div></div>
-<div class="card"><h2>Quick actions</h2><div class="grid g4">
-<a class="btn btn-dark" href="pos.html">Open Checkout</a><a class="btn" href="products.html">Manage Items</a><a class="btn" href="sales.html">View Reports</a><a class="btn" href="backup.html">Backup Data</a>
-</div></div>
-<div class="card"><h2>Recent orders</h2><table><thead><tr><th>#</th><th>Time</th><th>Type</th><th>Payment</th><th>Total</th></tr></thead><tbody id="recent"></tbody></table></div></div>
+<div class="card">
+  <h2>Quick actions</h2>
+  <div class="grid g4" id="quickActions"></div>
+</div>
 `;
 
+document.getElementById("quickActions").innerHTML = App.isAdmin()
+  ? `
+    <a class="btn btn-dark" href="pos.html">Open Checkout</a>
+    <a class="btn" href="products.html">Manage Items</a>
+    <a class="btn" href="sales.html">View Reports</a>
+    <a class="btn" href="backup.html">Backup Data</a>
+  `
+  : `
+    <a class="btn btn-dark" href="pos.html">Open Checkout</a>
+    <a class="btn" href="orders.html">View Orders</a>
+  `;
+
+let today=App.today()
 let today=App.today(),os=App.orders().filter(x=>String(x.createdAt).slice(0,10)===today),tot=os.reduce((n,x)=>n+Number(x.total||0),0);
 s.textContent=App.money(tot);o.textContent=os.length;p.textContent=App.products().filter(x=>x.active!==false).length;a.textContent=App.money(os.length?tot/os.length:0);
 recent.innerHTML="";App.orders().slice().sort((x,y)=>new Date(y.createdAt)-new Date(x.createdAt)).slice(0,8).forEach(x=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${x.orderNumber}</td><td>${new Date(x.createdAt).toLocaleTimeString()}</td><td>${x.orderType}</td><td>${x.paymentMethod}</td><td>${App.money(x.total)}</td>`;recent.appendChild(tr)});
