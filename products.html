@@ -13,8 +13,9 @@
 <div class="app-shell" id="shell"></div>
 
 <script>
-if (!App.requireLogin()) {
-  throw new Error("login required");
+`javascript
+if (!App.requireAdmin()) {
+  throw new Error("admin required");
 }
 
 document.getElementById("shell").innerHTML = App.shell("products", "Items");
