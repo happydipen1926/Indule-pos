@@ -5,62 +5,42 @@ async function getCurrentProfile() {
     error: userError
   } = await supabaseClient.auth.getUser();
 
-
   if (userError || !user) {
-
-    console.error(
-      "User error:",
-      userError
-    );
-
+    console.error("User error:", userError);
     return null;
   }
-
 
   const {
     data: profile,
     error: profileError
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select(`
-        id,
-        business_id,
-        full_name,
-        role,
-        active
-      `)
-      .eq("id", user.id)
-      .single();
-
+  } = await supabaseClient
+    .from("profiles")
+    .select("id, business_id, full_name, role, active")
+    .eq("id", user.id)
+    .single();
 
   if (profileError) {
-
-    console.error(
-      "Profile error:",
-      profileError
-    );
-
+    console.error("Profile error:", profileError);
     return null;
   }
-
 
   if (profile.active === false) {
-
-    alert(
-      "This POS user is disabled."
-    );
-
+    alert("This POS user is disabled.");
     return null;
   }
 
-
   return profile;
-}let paymentBusy = false;
+}
+
+
+let paymentBusy = false;
+
 
 async function finish(method) {
 
-  if (paymentBusy) return;
+  if (paymentBusy) {
+    return;
+  }
 
   if (!cart.length) {
     alert("There are no items in the cart.");
@@ -83,20 +63,34 @@ async function finish(method) {
       return;
     }
 
+
+    /* CALCULATE SALE */
+
     const subtotal = cart.reduce(
       (total, item) =>
-        total + Number(item.price) * Number(item.qty),
+        total +
+        Number(item.price) *
+        Number(item.qty),
       0
     );
 
+    const discountPercent =
+      Number(discount || 0);
+
     const discountAmount =
-      subtotal * Number(discount || 0) / 100;
+      subtotal *
+      discountPercent /
+      100;
 
     const total =
-      subtotal - discountAmount;
+      subtotal -
+      discountAmount;
 
     const customerOrTable =
       tableName.value.trim();
+
+
+    /* CREATE ORDER */
 
     const {
       data: order,
@@ -104,13 +98,26 @@ async function finish(method) {
     } = await supabaseClient
       .from("orders")
       .insert({
-        business_id: profile.business_id,
-        order_type: type,
-        payment_method: method,
-        subtotal: subtotal,
-        discount_percent: Number(discount || 0),
-        discount_amount: discountAmount,
-        total: total,
+        business_id:
+          profile.business_id,
+
+        order_type:
+          type,
+
+        payment_method:
+          method,
+
+        subtotal:
+          subtotal,
+
+        discount_percent:
+          discountPercent,
+
+        discount_amount:
+          discountAmount,
+
+        total:
+          total,
 
         table_name:
           type === "Dine In"
@@ -122,38 +129,62 @@ async function finish(method) {
             ? customerOrTable || null
             : null,
 
-        created_by: profile.id,
-        status: "pending"
+        created_by:
+          profile.id,
+
+        status:
+          "pending"
       })
       .select()
       .single();
 
+
     if (orderError) {
-      console.error(orderError);
+
+      console.error(
+        "Order save error:",
+        orderError
+      );
+
       alert(
-        "Order could not be saved:\n" +
+        "Order could not be saved.\n\n" +
         orderError.message
       );
+
       return;
     }
 
-    const itemRows = cart.map(item => ({
-      order_id: order.id,
 
-      product_id:
-        typeof item.id === "number"
-          ? item.id
-          : null,
+    /* CREATE ORDER ITEMS */
 
-      product_name: item.name,
-      category_name: item.category || null,
-      unit_price: Number(item.price),
-      quantity: Number(item.qty),
+    const itemRows = cart.map(
+      item => ({
+        order_id:
+          order.id,
 
-      line_total:
-        Number(item.price) *
-        Number(item.qty)
-    }));
+        product_id:
+          typeof item.id === "number"
+            ? item.id
+            : null,
+
+        product_name:
+          item.name,
+
+        category_name:
+          item.category || null,
+
+        unit_price:
+          Number(item.price),
+
+        quantity:
+          Number(item.qty),
+
+        line_total:
+          Number(item.price) *
+          Number(item.qty)
+      })
+    );
+
 
     const {
       error: itemsError
@@ -161,16 +192,32 @@ async function finish(method) {
       .from("order_items")
       .insert(itemRows);
 
+
     if (itemsError) {
-      console.error(itemsError);
+
+      console.error(
+        "Order items error:",
+        itemsError
+      );
+
+      await supabaseClient
+        .from("orders")
+        .update({
+          status: "failed"
+        })
+        .eq("id", order.id);
 
       alert(
-        "Order created, but items could not be saved:\n" +
-        itemsError.message
+        "Order was created, but the items could not be saved.\n\n" +
+        itemsError.message +
+        "\n\nYour cart has not been cleared."
       );
 
       return;
     }
+
+
+    /* COMPLETE ORDER */
 
     const {
       error: completeError
@@ -181,22 +228,31 @@ async function finish(method) {
       })
       .eq("id", order.id);
 
+
     if (completeError) {
-      console.error(completeError);
+
+      console.error(
+        "Complete order error:",
+        completeError
+      );
 
       alert(
-        "Order was saved but could not be completed."
+        "Order and items were saved, but the order could not be marked completed.\n\n" +
+        completeError.message
       );
 
       return;
     }
+
+
+    /* PAYMENT SUCCESS */
 
     closePay();
 
     alert(
       "Payment recorded successfully\n\n" +
       "Order #" +
-      order.order_number +
+      (order.order_number || order.id) +
       "\n" +
       method +
       "\n" +
@@ -207,12 +263,17 @@ async function finish(method) {
 
     orderno.textContent = "Auto";
 
+
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "Checkout error:",
+      error
+    );
 
     alert(
-      "Something went wrong while saving the order."
+      "Something went wrong while saving the order.\n\n" +
+      "Your cart has not been cleared."
     );
 
   } finally {
