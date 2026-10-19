@@ -302,7 +302,12 @@
           "Orders",
           "orders"
         ],
-
+[
+  "clock.html",
+  "◷",
+  "Clock",
+  "clock"
+],
         [
           "products.html",
           "□",
@@ -363,7 +368,12 @@
           "orders"
         ]
       ];
-
+[
+  "clock.html",
+  "◷",
+  "Clock",
+  "clock"
+],
 
       const items =
         this.isAdmin()
