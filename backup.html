@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Backup</title>
-<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireAdmin()) throw new Error("admin required");
 document.getElementById("shell").innerHTML=App.shell("backup", "Backup");
 document.getElementById("page").innerHTML=`
 <div class="container"><div class="card"><h2>Backup & restore</h2><p>Download a full copy of your products, categories, sales, saved carts, staff and settings.</p><button class="btn btn-dark" onclick="App.exportBackup()">Download full backup</button></div>
