@@ -5,6 +5,9 @@
 <script src="supabase-client.js"></script>
 
 <script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+  if(!App.requireStaffPin()) {
+  throw new Error("staff PIN required");
+}
 document.getElementById("shell").innerHTML=App.shell("pos", "Checkout");
 document.getElementById("page").innerHTML=`
 <div class="checkout">
@@ -364,11 +367,32 @@ async function finish(method){
 
       Replace SUPABASE_CLIENT below with that variable.
     */
+try {
 
+  const selectedStaff =
+    App.currentStaff();
+
+  if(
+    !selectedStaff ||
+    !selectedStaff.token
+  ){
+
+    alert(
+      "Please select a staff member first."
+    );
+
+    App.switchStaff();
+
+    return;
+  }
+
+
+  const { data, error } =
     const { data, error } =
       await supabaseClient.rpc(
-        "record_pos_sale",
+        ""record_pos_sale_by_pin",",
         {
+         p_staff_token: selectedStaff.token,
           p_order_type: type,
           p_payment_method: method,
           p_subtotal: sub,
