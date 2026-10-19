@@ -122,24 +122,93 @@
     // ==========================
 
     session(){
-      return read(
-        K.session,
-        null
+
+  return read(
+    K.session,
+    null
+  );
+
+},
+
+
+staffSession(){
+
+  try {
+
+    const raw =
+      sessionStorage.getItem(
+        "pos_staff_session"
       );
-    },
+
+    return raw
+      ? JSON.parse(raw)
+      : null;
+
+  } catch(e){
+
+    return null;
+
+  }
+
+},
 
 
-    role(){
+currentStaff(){
 
-      const s =
-        this.session();
+  return this.staffSession();
 
-      return String(
-        s?.role || ""
-      )
-        .trim()
-        .toLowerCase();
-    },
+},
+
+
+requireStaffPin(){
+
+  const staff =
+    this.staffSession();
+
+  if(
+    !staff ||
+    !staff.token
+  ){
+
+    location.href =
+      "staff-pin.html";
+
+    return false;
+
+  }
+
+  return true;
+
+},
+
+
+switchStaff(){
+
+  sessionStorage.removeItem(
+    "pos_staff_session"
+  );
+
+  location.href =
+    "staff-pin.html";
+
+},
+   role(){
+
+  const selectedStaff =
+    this.staffSession();
+
+  const s =
+    this.session();
+
+  return String(
+    selectedStaff?.role ||
+    s?.role ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+},
 
 
     isAdmin(){
@@ -205,13 +274,18 @@
 
     logout(){
 
-      localStorage.removeItem(
-        K.session
-      );
+  sessionStorage.removeItem(
+    "pos_staff_session"
+  );
 
-      location.href =
-        "index.html";
-    },
+  localStorage.removeItem(
+    K.session
+  );
+
+  location.href =
+    "index.html";
+
+},
 
 
     // ==========================
@@ -387,14 +461,24 @@
       : staffItems;
 
 
-  const session =
-    this.session() || {};
+ const session =
+  this.session() || {};
 
 
-  const roleLabel =
-    this.isAdmin()
-      ? "Admin"
-      : "Staff";
+const selectedStaff =
+  this.currentStaff();
+
+
+const displayName =
+  selectedStaff?.staffName ||
+  session.name ||
+  "";
+
+
+const roleLabel =
+  this.isAdmin()
+    ? "Admin"
+    : "Staff";
 
 
   return `
@@ -428,7 +512,21 @@
           )
           .join("")
       }
+<a
+  href="#"
+  onclick="
+    App.switchStaff();
+    return false;
+  "
+>
 
+  <span class="ico">
+    ⇄
+  </span>
+
+  Switch Staff
+
+</a>
       <a
         href="#"
         onclick="
@@ -465,19 +563,19 @@
 
         <div>
 
-          ${
-            session.name || ""
-          }
+  ${
+    displayName
+  }
 
-          ${
-            session.name
-              ? " · "
-              : ""
-          }
+  ${
+    displayName
+      ? " · "
+      : ""
+  }
 
-          ${roleLabel}
+  ${roleLabel}
 
-        </div>
+</div>
 
       </div>
 
