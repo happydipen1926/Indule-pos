@@ -282,67 +282,70 @@
 
       const adminItems = [
 
-        [
-          "dashboard.html",
-          "⌂",
-          "Home",
-          "home"
-        ],
+  [
+    "dashboard.html",
+    "⌂",
+    "Home",
+    "home"
+  ],
 
-        [
-          "pos.html",
-          "▦",
-          "Checkout",
-          "pos"
-        ],
+  [
+    "pos.html",
+    "▦",
+    "Checkout",
+    "pos"
+  ],
 
-        [
-          "orders.html",
-          "≡",
-          "Orders",
-          "orders"
-        ],
-[
-  "clock.html",
-  "◷",
-  "Clock",
-  "clock"
-],
-        [
-          "products.html",
-          "□",
-          "Items",
-          "products"
-        ],
+  [
+    "orders.html",
+    "≡",
+    "Orders",
+    "orders"
+  ],
 
-        [
-          "sales.html",
-          "▥",
-          "Reports",
-          "sales"
-        ],
+  [
+    "clock.html",
+    "◷",
+    "Clock",
+    "clock"
+  ],
 
-        [
-          "staff.html",
-          "♙",
-          "Staff",
-          "staff"
-        ],
+  [
+    "products.html",
+    "□",
+    "Items",
+    "products"
+  ],
 
-        [
-          "backup.html",
-          "⇩",
-          "Backup",
-          "backup"
-        ],
+  [
+    "sales.html",
+    "▥",
+    "Reports",
+    "sales"
+  ],
 
-        [
-          "settings.html",
-          "⚙",
-          "Settings",
-          "settings"
-        ]
-      ];
+  [
+    "staff.html",
+    "♙",
+    "Staff",
+    "staff"
+  ],
+
+  [
+    "backup.html",
+    "⇩",
+    "Backup",
+    "backup"
+  ],
+
+  [
+    "settings.html",
+    "⚙",
+    "Settings",
+    "settings"
+  ]
+
+];
 
 
       const staffItems = [
@@ -373,7 +376,37 @@
   "◷",
   "Clock",
   "clock"
-],
+],const staffItems = [
+
+  [
+    "dashboard.html",
+    "⌂",
+    "Home",
+    "home"
+  ],
+
+  [
+    "pos.html",
+    "▦",
+    "Checkout",
+    "pos"
+  ],
+
+  [
+    "orders.html",
+    "≡",
+    "Orders",
+    "orders"
+  ],
+
+  [
+    "clock.html",
+    "◷",
+    "Clock",
+    "clock"
+  ]
+
+];
 
       const items =
         this.isAdmin()
