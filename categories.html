@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Categories</title>
-<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireAdmin()) throw new Error("admin required");
 document.getElementById("shell").innerHTML=App.shell("products", "Categories");
 document.getElementById("page").innerHTML=`
 <div class="container"><div class="card"><h2>Categories</h2><div class="toolbar"><div><label>New category</label><input id="newcat" placeholder="e.g. Coffee"></div><div style="flex:0"><label>&nbsp;</label><button class="btn btn-dark" onclick="addC()">Add</button></div></div></div>
