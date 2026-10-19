@@ -1,23 +1,806 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Reports</title>
-<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
-document.getElementById("shell").innerHTML=App.shell("sales", "Reports");
-document.getElementById("page").innerHTML=`
-<div class="container"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <h2>Sales Reports</h2>
+  <title>Indulge Cafe Sales Reports</title>
 
-  <a class="btn btn-dark" href="cashout.html">
-    Cashout / End of Day
-  </a>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
 
-</div><div class="toolbar"><div><label>From</label><input id="from" type="date"></div><div><label>To</label><input id="to" type="date"></div><div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="today()">Today</button></div><div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="month()">Month</button></div><div style="flex:0"><label>&nbsp;</label><button class="btn btn-dark" onclick="render()">Apply</button></div></div></div>
-<div class="grid g4"><div class="stat"><div class="k">Sales</div><div class="v" id="tot">$0</div></div><div class="stat"><div class="k">Cash</div><div class="v" id="cash">$0</div></div><div class="stat"><div class="k">Card</div><div class="v" id="card">$0</div></div><div class="stat"><div class="k">Orders / Avg</div><div class="v"><span id="count">0</span> / <span id="avg">$0</span></div></div></div>
-<div class="grid g2"><div class="card"><h3>Top items</h3><table><thead><tr><th>Item</th><th>Qty</th><th>Sales</th></tr></thead><tbody id="prows"></tbody></table></div><div class="card"><h3>By category</h3><table><thead><tr><th>Category</th><th>Qty</th><th>Sales</th></tr></thead><tbody id="crows"></tbody></table></div></div>
-<div class="card"><button class="btn" onclick="csv()">Export CSV</button> <button class="btn" onclick="window.print()">Print</button></div></div>
-`;
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;color:#222}
+    header{background:#5d4742;color:#fff;padding:18px;text-align:center}
+    header h1{margin:0 0 12px}
+    header a{color:#fff;text-decoration:none;border:1px solid rgba(255,255,255,.45);padding:9px 13px;border-radius:7px;margin:4px;display:inline-block}
+    header a:hover{background:rgba(255,255,255,.12)}
+    .cashout-link{background:#fff;color:#5d4742!important;font-weight:700}
+    .container{max-width:1250px;margin:auto;padding:18px}
+    .filters,.panel{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:16px}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+    button,input{padding:10px 12px;border:1px solid #aaa;border-radius:7px;font-size:15px}
+    button{cursor:pointer}
+    button:hover{background:#eee}
+    .primary{background:#5d4742;color:#fff;border-color:#5d4742}
+    .primary:hover{background:#493733}
+    .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+    .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+    .card .label{color:#666;font-size:13px}
+    .card .value{font-size:25px;font-weight:bold;margin-top:6px}
+    .panel h2{margin-top:0}
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:720px}
+    th,td{text-align:left;padding:10px;border-bottom:1px solid #ddd;vertical-align:top}
+    th{background:#faf7f4;position:sticky;top:0}
+    .bar-wrap{background:#eee;border-radius:20px;overflow:hidden;height:12px;min-width:100px}
+    .bar{background:#7a625d;height:12px}
+    .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .muted{color:#666}
+    .status{padding:12px;border-radius:8px;margin-bottom:14px;background:#fff8e8;border:1px solid #ead39a}
+    .status.ok{background:#eef8f1;border-color:#b9dfc4}
+    @media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.cards{grid-template-columns:1fr}.container{padding:10px}}
+    @media print{
+      header,.filters,.actions,#statusBox{display:none!important}
+      body{background:#fff}
+      .panel,.card{box-shadow:none;border:1px solid #ddd}
+    }
+  </style>
+</head>
 
-function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,'0')+"-"+String(d.getDate()).padStart(2,'0')}function today(){let d=new Date();from.value=to.value=iso(d);render()}function month(){let d=new Date();from.value=iso(new Date(d.getFullYear(),d.getMonth(),1));to.value=iso(d);render()}function filt(){return App.orders().filter(o=>{let d=String(o.createdAt).slice(0,10);return(!from.value||d>=from.value)&&(!to.value||d<=to.value)})}
-function render(){let os=filt(),t=os.reduce((n,o)=>n+Number(o.total||0),0),ca=os.filter(o=>o.paymentMethod==='Cash').reduce((n,o)=>n+Number(o.total||0),0),cd=os.filter(o=>o.paymentMethod==='Card').reduce((n,o)=>n+Number(o.total||0),0);tot.textContent=App.money(t);cash.textContent=App.money(ca);card.textContent=App.money(cd);count.textContent=os.length;avg.textContent=App.money(os.length?t/os.length:0);let ps={},cs={};os.forEach(o=>(o.items||[]).forEach(i=>{ps[i.name]=ps[i.name]||{q:0,s:0};ps[i.name].q+=i.qty;ps[i.name].s+=i.qty*i.price;let c=i.category||'Other';cs[c]=cs[c]||{q:0,s:0};cs[c].q+=i.qty;cs[c].s+=i.qty*i.price}));prows.innerHTML='';Object.entries(ps).sort((a,b)=>b[1].q-a[1].q).forEach(([n,v])=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${n}</td><td>${v.q}</td><td>${App.money(v.s)}</td>`;prows.appendChild(tr)});crows.innerHTML='';Object.entries(cs).sort((a,b)=>b[1].s-a[1].s).forEach(([n,v])=>{let tr=document.createElement('tr');tr.innerHTML=`<td>${n}</td><td>${v.q}</td><td>${App.money(v.s)}</td>`;crows.appendChild(tr)})}
-function csv(){let os=filt(),rows=[['Order','Date','Type','Payment','Total','Items']];os.forEach(o=>rows.push([o.orderNumber,new Date(o.createdAt).toLocaleString(),o.orderType,o.paymentMethod,Number(o.total).toFixed(2),(o.items||[]).map(i=>`${i.qty}x ${i.name}`).join(' | ')]));let txt=rows.map(r=>r.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(',')).join('\n'),b=new Blob([txt],{type:'text/csv'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='indulge-sales.csv';a.click();URL.revokeObjectURL(u)}
-month();
-</script></body></html>
+<body>
+
+<header>
+  <h1>Indulge Cafe Sales Reports</h1>
+  <a href="pos.html">Checkout</a>
+  <a href="orders.html">Orders</a>
+  <a class="cashout-link" href="cashout.html">Cashout / End of Day</a>
+  <a href="settings.html">Settings</a>
+</header>
+
+<div class="container">
+
+  <div id="statusBox" class="status">
+    Loading sales from Supabase...
+  </div>
+
+  <div class="filters">
+
+    <div>
+      <label>
+        From<br>
+        <input type="date" id="fromDate">
+      </label>
+    </div>
+
+    <div>
+      <label>
+        To<br>
+        <input type="date" id="toDate">
+      </label>
+    </div>
+
+    <button onclick="setToday()">Today</button>
+    <button onclick="setYesterday()">Yesterday</button>
+    <button onclick="setThisWeek()">This Week</button>
+    <button onclick="setThisMonth()">This Month</button>
+    <button onclick="setThisYear()">This Year</button>
+    <button class="primary" onclick="applyFilters()">Apply / Refresh</button>
+
+  </div>
+
+  <div class="cards">
+
+    <div class="card">
+      <div class="label">Total Sales</div>
+      <div class="value">$<span id="totalSales">0.00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Cash Sales</div>
+      <div class="value">$<span id="cashSales">0.00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Card Sales</div>
+      <div class="value">$<span id="cardSales">0.00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Orders</div>
+      <div class="value"><span id="orderCount">0</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Average Order</div>
+      <div class="value">$<span id="averageOrder">0.00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Discounts</div>
+      <div class="value">$<span id="discountTotal">0.00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">GST Included (estimate)</div>
+      <div class="value">$<span id="gstTotal">0.00</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">Selected Period</div>
+      <div class="value" style="font-size:17px" id="periodLabel">-</div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <h2>Sales by Day</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Orders</th>
+            <th>Cash</th>
+            <th>Card</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="dailyRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Best Selling Products</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Qty Sold</th>
+            <th>Sales</th>
+            <th>Share</th>
+          </tr>
+        </thead>
+        <tbody id="productRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Sales by Category</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Qty Sold</th>
+            <th>Sales</th>
+          </tr>
+        </thead>
+        <tbody id="categoryRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Order History</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Date</th>
+            <th>Type</th>
+            <th>Payment</th>
+            <th>Discount</th>
+            <th>Total</th>
+            <th>Items</th>
+          </tr>
+        </thead>
+        <tbody id="orderRows"></tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <button onclick="exportCSV()">Export CSV</button>
+      <button onclick="printReport()">Print Report</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+const BRISBANE_OFFSET = "+10:00";
+
+let currentProfile = null;
+let currentSales = [];
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function moneyNumber(value){
+  return Number(value || 0);
+}
+
+function formatMoney(value){
+  return moneyNumber(value).toFixed(2);
+}
+
+function ymdFromParts(y,m,d){
+  return [
+    String(y).padStart(4,"0"),
+    String(m).padStart(2,"0"),
+    String(d).padStart(2,"0")
+  ].join("-");
+}
+
+function brisbaneYMD(date = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA",{
+    timeZone:"Australia/Brisbane",
+    year:"numeric",
+    month:"2-digit",
+    day:"2-digit"
+  }).formatToParts(date);
+
+  const map = {};
+  parts.forEach(p => map[p.type] = p.value);
+
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function shiftYMD(dateString, days){
+  const [y,m,d] = dateString.split("-").map(Number);
+  const dt = new Date(Date.UTC(y,m-1,d + days));
+  return ymdFromParts(
+    dt.getUTCFullYear(),
+    dt.getUTCMonth()+1,
+    dt.getUTCDate()
+  );
+}
+
+function dayOfWeekFromYMD(dateString){
+  const [y,m,d] = dateString.split("-").map(Number);
+  return new Date(Date.UTC(y,m-1,d)).getUTCDay();
+}
+
+function startISO(dateString){
+  return new Date(
+    dateString + "T00:00:00" + BRISBANE_OFFSET
+  ).toISOString();
+}
+
+function endExclusiveISO(dateString){
+  return startISO(shiftYMD(dateString,1));
+}
+
+function formatBrisbaneDateTime(iso){
+  return new Date(iso).toLocaleString("en-AU",{
+    timeZone:"Australia/Brisbane"
+  });
+}
+
+function brisbaneDateKey(iso){
+  return brisbaneYMD(new Date(iso));
+}
+
+function prettyDate(dateString){
+  if(!dateString) return "-";
+
+  const [y,m,d] = dateString.split("-").map(Number);
+
+  return new Date(Date.UTC(y,m-1,d)).toLocaleDateString(
+    "en-AU",
+    {
+      day:"2-digit",
+      month:"short",
+      year:"numeric",
+      timeZone:"UTC"
+    }
+  );
+}
+
+function setStatus(text, ok=false){
+  const el = document.getElementById("statusBox");
+  el.textContent = text;
+  el.className = ok ? "status ok" : "status";
+}
+
+async function getCurrentProfile(){
+
+  const {
+    data:{user},
+    error:userError
+  } = await supabaseClient.auth.getUser();
+
+  if(userError || !user){
+    console.error("User error:",userError);
+    alert("Please sign in first.");
+    window.location.href = "index.html";
+    return null;
+  }
+
+  const {
+    data:profile,
+    error:profileError
+  } = await supabaseClient
+    .from("profiles")
+    .select("id,business_id,full_name,role,active")
+    .eq("id",user.id)
+    .single();
+
+  if(profileError){
+    console.error("Profile error:",profileError);
+    alert("Could not load your POS profile.");
+    return null;
+  }
+
+  if(profile.active === false){
+    alert("This POS user is disabled.");
+    return null;
+  }
+
+  return profile;
+}
+
+function setToday(){
+  const today = brisbaneYMD();
+  document.getElementById("fromDate").value = today;
+  document.getElementById("toDate").value = today;
+  applyFilters();
+}
+
+function setYesterday(){
+  const yesterday = shiftYMD(brisbaneYMD(),-1);
+  document.getElementById("fromDate").value = yesterday;
+  document.getElementById("toDate").value = yesterday;
+  applyFilters();
+}
+
+function setThisWeek(){
+  const today = brisbaneYMD();
+  const dow = dayOfWeekFromYMD(today);
+  const daysSinceMonday = (dow + 6) % 7;
+  const monday = shiftYMD(today,-daysSinceMonday);
+
+  document.getElementById("fromDate").value = monday;
+  document.getElementById("toDate").value = today;
+  applyFilters();
+}
+
+function setThisMonth(){
+  const today = brisbaneYMD();
+  const [y,m] = today.split("-");
+  document.getElementById("fromDate").value = `${y}-${m}-01`;
+  document.getElementById("toDate").value = today;
+  applyFilters();
+}
+
+function setThisYear(){
+  const today = brisbaneYMD();
+  const y = today.slice(0,4);
+  document.getElementById("fromDate").value = `${y}-01-01`;
+  document.getElementById("toDate").value = today;
+  applyFilters();
+}
+
+async function applyFilters(){
+
+  if(!currentProfile){
+    return;
+  }
+
+  const from = document.getElementById("fromDate").value;
+  const to = document.getElementById("toDate").value;
+
+  if(!from || !to){
+    alert("Choose both From and To dates.");
+    return;
+  }
+
+  if(from > to){
+    alert("From date cannot be after To date.");
+    return;
+  }
+
+  setStatus("Loading cloud sales...");
+
+  try{
+
+    const {
+      data,
+      error
+    } = await supabaseClient
+      .from("orders")
+      .select(`
+        id,
+        order_number,
+        order_type,
+        payment_method,
+        subtotal,
+        discount_percent,
+        discount_amount,
+        total,
+        table_name,
+        customer_name,
+        status,
+        created_at,
+        order_items (
+          id,
+          product_id,
+          product_name,
+          category_name,
+          unit_price,
+          quantity,
+          line_total
+        )
+      `)
+      .eq("business_id",currentProfile.business_id)
+      .eq("status","completed")
+      .gte("created_at",startISO(from))
+      .lt("created_at",endExclusiveISO(to))
+      .order("created_at",{ascending:false});
+
+    if(error){
+      throw error;
+    }
+
+    currentSales = data || [];
+
+    renderAll();
+
+    setStatus(
+      `Loaded ${currentSales.length} completed order${currentSales.length===1?"":"s"} from Supabase.`,
+      true
+    );
+
+  }catch(error){
+
+    console.error("Sales report error:",error);
+
+    setStatus(
+      "Could not load sales: " + (error.message || "Unknown error")
+    );
+  }
+}
+
+function renderAll(){
+  renderSummary();
+  renderDaily();
+  renderProducts();
+  renderCategories();
+  renderOrders();
+}
+
+function renderSummary(){
+
+  const total = currentSales.reduce(
+    (sum,s) => sum + moneyNumber(s.total),
+    0
+  );
+
+  const cash = currentSales
+    .filter(s => s.payment_method === "Cash")
+    .reduce((sum,s) => sum + moneyNumber(s.total),0);
+
+  const card = currentSales
+    .filter(s => s.payment_method === "Card")
+    .reduce((sum,s) => sum + moneyNumber(s.total),0);
+
+  const discounts = currentSales.reduce(
+    (sum,s) => sum + moneyNumber(s.discount_amount),
+    0
+  );
+
+  const gstEstimate = total / 11;
+
+  document.getElementById("totalSales").textContent = formatMoney(total);
+  document.getElementById("cashSales").textContent = formatMoney(cash);
+  document.getElementById("cardSales").textContent = formatMoney(card);
+  document.getElementById("orderCount").textContent = currentSales.length;
+  document.getElementById("averageOrder").textContent =
+    formatMoney(currentSales.length ? total/currentSales.length : 0);
+  document.getElementById("discountTotal").textContent =
+    formatMoney(discounts);
+  document.getElementById("gstTotal").textContent =
+    formatMoney(gstEstimate);
+
+  const from = document.getElementById("fromDate").value;
+  const to = document.getElementById("toDate").value;
+
+  document.getElementById("periodLabel").textContent =
+    from === to
+      ? prettyDate(from)
+      : `${prettyDate(from)} - ${prettyDate(to)}`;
+}
+
+function renderDaily(){
+
+  const stats = {};
+
+  currentSales.forEach(order => {
+
+    const key = brisbaneDateKey(order.created_at);
+
+    if(!stats[key]){
+      stats[key] = {
+        orders:0,
+        cash:0,
+        card:0,
+        total:0
+      };
+    }
+
+    stats[key].orders++;
+    stats[key].total += moneyNumber(order.total);
+
+    if(order.payment_method === "Cash"){
+      stats[key].cash += moneyNumber(order.total);
+    }
+
+    if(order.payment_method === "Card"){
+      stats[key].card += moneyNumber(order.total);
+    }
+  });
+
+  const tbody = document.getElementById("dailyRows");
+  tbody.innerHTML = "";
+
+  const entries = Object.entries(stats)
+    .sort((a,b) => b[0].localeCompare(a[0]));
+
+  if(!entries.length){
+    tbody.innerHTML =
+      `<tr><td colspan="5" class="muted">No completed sales for this period.</td></tr>`;
+    return;
+  }
+
+  entries.forEach(([date,v]) => {
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${prettyDate(date)}</td>
+      <td>${v.orders}</td>
+      <td>$${formatMoney(v.cash)}</td>
+      <td>$${formatMoney(v.card)}</td>
+      <td><strong>$${formatMoney(v.total)}</strong></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderProducts(){
+
+  const stats = {};
+  let totalQty = 0;
+
+  currentSales.forEach(order => {
+
+    (order.order_items || []).forEach(item => {
+
+      const key = item.product_name || "Unknown Item";
+
+      if(!stats[key]){
+        stats[key] = {
+          qty:0,
+          sales:0
+        };
+      }
+
+      const qty = moneyNumber(item.quantity);
+
+      stats[key].qty += qty;
+      stats[key].sales += moneyNumber(item.line_total);
+      totalQty += qty;
+    });
+  });
+
+  const rows = document.getElementById("productRows");
+  rows.innerHTML = "";
+
+  const entries = Object.entries(stats)
+    .sort((a,b) => b[1].qty - a[1].qty);
+
+  if(!entries.length){
+    rows.innerHTML =
+      `<tr><td colspan="4" class="muted">No product sales for this period.</td></tr>`;
+    return;
+  }
+
+  entries.forEach(([name,v]) => {
+
+    const pct = totalQty
+      ? Math.round(v.qty / totalQty * 100)
+      : 0;
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${escapeHtml(name)}</td>
+      <td>${v.qty}</td>
+      <td>$${formatMoney(v.sales)}</td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar" style="width:${pct}%"></div>
+        </div>
+        <small>${pct}%</small>
+      </td>
+    `;
+
+    rows.appendChild(tr);
+  });
+}
+
+function renderCategories(){
+
+  const stats = {};
+
+  currentSales.forEach(order => {
+
+    (order.order_items || []).forEach(item => {
+
+      const category =
+        item.category_name || "Uncategorised";
+
+      if(!stats[category]){
+        stats[category] = {
+          qty:0,
+          sales:0
+        };
+      }
+
+      stats[category].qty += moneyNumber(item.quantity);
+      stats[category].sales += moneyNumber(item.line_total);
+    });
+  });
+
+  const rows = document.getElementById("categoryRows");
+  rows.innerHTML = "";
+
+  const entries = Object.entries(stats)
+    .sort((a,b) => b[1].sales - a[1].sales);
+
+  if(!entries.length){
+    rows.innerHTML =
+      `<tr><td colspan="3" class="muted">No category sales for this period.</td></tr>`;
+    return;
+  }
+
+  entries.forEach(([category,v]) => {
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${escapeHtml(category)}</td>
+      <td>${v.qty}</td>
+      <td>$${formatMoney(v.sales)}</td>
+    `;
+
+    rows.appendChild(tr);
+  });
+}
+
+function renderOrders(){
+
+  const rows = document.getElementById("orderRows");
+  rows.innerHTML = "";
+
+  if(!currentSales.length){
+    rows.innerHTML =
+      `<tr><td colspan="7" class="muted">No completed orders for this period.</td></tr>`;
+    return;
+  }
+
+  currentSales.forEach(order => {
+
+    const items = (order.order_items || [])
+      .map(item =>
+        `${item.quantity}× ${escapeHtml(item.product_name || "Item")}`
+      )
+      .join(", ");
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${order.order_number ?? order.id}</td>
+      <td>${formatBrisbaneDateTime(order.created_at)}</td>
+      <td>${escapeHtml(order.order_type || "")}</td>
+      <td>${escapeHtml(order.payment_method || "")}</td>
+      <td>$${formatMoney(order.discount_amount)}</td>
+      <td><strong>$${formatMoney(order.total)}</strong></td>
+      <td>${items}</td>
+    `;
+
+    rows.appendChild(tr);
+  });
+}
+
+function csvEscape(value){
+  return `"${String(value ?? "").replace(/"/g,'""')}"`;
+}
+
+function exportCSV(){
+
+  const lines = [[
+    "Order #",
+    "Date",
+    "Order Type",
+    "Payment",
+    "Subtotal",
+    "Discount",
+    "Total",
+    "Items"
+  ]];
+
+  currentSales.forEach(order => {
+
+    const items = (order.order_items || [])
+      .map(item =>
+        `${item.quantity}x ${item.product_name}`
+      )
+      .join(" | ");
+
+    lines.push([
+      order.order_number ?? order.id,
+      formatBrisbaneDateTime(order.created_at),
+      order.order_type || "",
+      order.payment_method || "",
+      formatMoney(order.subtotal),
+      formatMoney(order.discount_amount),
+      formatMoney(order.total),
+      items
+    ]);
+  });
+
+  const csv = lines
+    .map(row => row.map(csvEscape).join(","))
+    .join("\n");
+
+  const blob = new Blob(
+    [csv],
+    {type:"text/csv;charset=utf-8"}
+  );
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+
+  a.href = url;
+  a.download = "indulge-sales-report.csv";
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function printReport(){
+  window.print();
+}
+
+async function startReports(){
+
+  currentProfile = await getCurrentProfile();
+
+  if(!currentProfile){
+    return;
+  }
+
+  setThisMonth();
+}
+
+startReports();
+
+</script>
+
+</body>
+</html>
