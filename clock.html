@@ -29,17 +29,31 @@
   id="shell">
 </div>
 
+
 <script>
 
 if(!App.requireLogin()){
   throw new Error("login required");
 }
 
-document.getElementById("shell").innerHTML =
-  App.shell("clock", "Clock In / Out");
+
+if(!App.requireStaffPin()){
+  throw new Error("staff PIN required");
+}
 
 
-document.getElementById("page").innerHTML = `
+document.getElementById(
+  "shell"
+).innerHTML =
+  App.shell(
+    "clock",
+    "Clock In / Out"
+  );
+
+
+document.getElementById(
+  "page"
+).innerHTML = `
 
   <div class="card">
 
@@ -50,14 +64,16 @@ document.getElementById("page").innerHTML = `
       clock out when you finish.
     </p>
 
+
     <div
       id="staffName"
       style="
-        font-size:20px;
+        font-size:22px;
         font-weight:700;
         margin-top:20px;
       ">
     </div>
+
 
     <div
       id="statusBox"
@@ -112,9 +128,7 @@ document.getElementById("page").innerHTML = `
     <h2>Current Shift</h2>
 
     <div id="shiftDetails">
-
       No active shift.
-
     </div>
 
   </div>
@@ -122,14 +136,16 @@ document.getElementById("page").innerHTML = `
 `;
 
 
-const session =
-  App.session() || {};
+const selectedStaff =
+  App.currentStaff();
 
 
 document.getElementById(
   "staffName"
 ).textContent =
-  session.name || "Staff";
+  selectedStaff
+    ? selectedStaff.staffName
+    : "No staff selected";
 
 
 function formatDateTime(value){
@@ -192,6 +208,21 @@ function formatDuration(start){
 
 async function loadClockStatus(){
 
+  const selectedStaff =
+    App.currentStaff();
+
+
+  if(
+    !selectedStaff ||
+    !selectedStaff.token
+  ){
+
+    App.switchStaff();
+    return;
+
+  }
+
+
   const statusBox =
     document.getElementById(
       "statusBox"
@@ -220,7 +251,11 @@ async function loadClockStatus(){
       error
     } =
       await supabaseClient.rpc(
-        "get_my_shift_status"
+        "get_staff_shift_status_by_pin",
+        {
+          p_staff_token:
+            selectedStaff.token
+        }
       );
 
 
@@ -239,7 +274,13 @@ async function loadClockStatus(){
         CLOCKED IN
       `;
 
+
       shiftDetails.innerHTML = `
+
+        <p>
+          <b>Staff:</b>
+          ${data.staff_name || ""}
+        </p>
 
         <p>
           <b>Clock In:</b>
@@ -267,6 +308,7 @@ async function loadClockStatus(){
         NOT CLOCKED IN
       `;
 
+
       shiftDetails.innerHTML =
         "No active shift.";
 
@@ -286,8 +328,15 @@ async function loadClockStatus(){
       error
     );
 
+
     statusBox.innerHTML =
       "Could not load clock status.";
+
+
+    alert(
+      error?.message ||
+      "Could not load clock status"
+    );
 
   }
 
@@ -296,12 +345,31 @@ async function loadClockStatus(){
 
 async function clockIn(){
 
+  const selectedStaff =
+    App.currentStaff();
+
+
+  if(
+    !selectedStaff ||
+    !selectedStaff.token
+  ){
+
+    App.switchStaff();
+    return;
+
+  }
+
+
   if(
     !confirm(
-      "Clock in now?"
+      "Clock in " +
+      selectedStaff.staffName +
+      " now?"
     )
   ){
+
     return;
+
   }
 
 
@@ -312,7 +380,11 @@ async function clockIn(){
       error
     } =
       await supabaseClient.rpc(
-        "clock_in_staff"
+        "clock_in_staff_by_pin",
+        {
+          p_staff_token:
+            selectedStaff.token
+        }
       );
 
 
@@ -322,7 +394,8 @@ async function clockIn(){
 
 
     alert(
-      "Clocked in successfully.\n\n" +
+      data.staff_name +
+      " clocked in successfully.\n\n" +
       formatDateTime(
         data.clock_in
       )
@@ -330,6 +403,7 @@ async function clockIn(){
 
 
     await loadClockStatus();
+
 
   } catch(error){
 
@@ -354,12 +428,31 @@ async function clockIn(){
 
 async function clockOut(){
 
+  const selectedStaff =
+    App.currentStaff();
+
+
+  if(
+    !selectedStaff ||
+    !selectedStaff.token
+  ){
+
+    App.switchStaff();
+    return;
+
+  }
+
+
   if(
     !confirm(
-      "Clock out now?"
+      "Clock out " +
+      selectedStaff.staffName +
+      " now?"
     )
   ){
+
     return;
+
   }
 
 
@@ -370,7 +463,11 @@ async function clockOut(){
       error
     } =
       await supabaseClient.rpc(
-        "clock_out_staff"
+        "clock_out_staff_by_pin",
+        {
+          p_staff_token:
+            selectedStaff.token
+        }
       );
 
 
@@ -389,6 +486,7 @@ async function clockOut(){
         data.clock_out
       );
 
+
     const minutes =
       Math.max(
         0,
@@ -402,6 +500,7 @@ async function clockOut(){
         )
       );
 
+
     const hours =
       Math.floor(
         minutes / 60
@@ -412,7 +511,8 @@ async function clockOut(){
 
 
     alert(
-      "Clocked out successfully.\n\n" +
+      data.staff_name +
+      " clocked out successfully.\n\n" +
       "Total: " +
       hours +
       "h " +
@@ -422,6 +522,7 @@ async function clockOut(){
 
 
     await loadClockStatus();
+
 
   } catch(error){
 
