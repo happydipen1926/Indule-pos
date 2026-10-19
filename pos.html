@@ -1,197 +1,365 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Indulge Café POS - Sign In</title>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout</title>
+<link rel="stylesheet" href="styles.css">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-client.js"></script>
 
-<style>
-:root{
-  --cream:#f5f5f5;--paper:#ffffff;--espresso:#111111;--coffee:#222222;
-  --sage:#111111;--sage2:#eeeeee;--terracotta:#333333;--gold:#ffffff;
-  --ink:#111111;--muted:#666666;--line:#d9d9d9;--danger:#111111;
-  --shadow:0 18px 50px rgba(0,0,0,.14);
-}
-*{box-sizing:border-box}
-body{
-  margin:0;min-height:100vh;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:var(--cream);color:var(--ink);display:grid;place-items:center;padding:22px;
-}
-.wrap{
-  width:min(1000px,100%);display:grid;grid-template-columns:1.15fr .85fr;
-  background:var(--paper);border:1px solid var(--line);border-radius:32px;overflow:hidden;box-shadow:var(--shadow);
-}
-.brand{
-  position:relative;min-height:620px;padding:48px;
-  background:linear-gradient(135deg,#111111,#2a2a2a);color:white;overflow:hidden;
-}
-.brand:before,.brand:after{
-  content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.07)
-}
-.brand:before{width:320px;height:320px;right:-100px;top:-100px}
-.brand:after{width:240px;height:240px;left:-100px;bottom:-90px}
-.logo{position:relative;z-index:2;display:flex;align-items:center;gap:14px}
-.badge{width:64px;height:64px;border-radius:20px;background:#ffffff;border:2px solid #111111;display:grid;place-items:center;color:#111111;font-size:28px;font-weight:900}
-.logo h1{font-family:Georgia,"Times New Roman",serif;margin:0;font-size:30px}
-.logo small{color:#dddddd;letter-spacing:1.2px;text-transform:uppercase}
-.hero{position:relative;z-index:2;margin-top:100px;max-width:520px}
-.hero h2{font-family:Georgia,"Times New Roman",serif;font-size:44px;line-height:1.05;margin:0 0 14px}
-.hero p{font-size:18px;line-height:1.6;color:#e8e8e8}
-.chips{position:relative;z-index:2;display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
-.chip{border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);padding:10px 13px;border-radius:14px;font-size:13px}
-.login{padding:52px 42px;display:flex;flex-direction:column;justify-content:center}
-.login h2{font-family:Georgia,"Times New Roman",serif;font-size:32px;margin:0 0 7px;color:var(--espresso)}
-.login p{margin:0 0 28px;color:var(--muted)}
-label{display:block;font-size:13px;font-weight:800;color:var(--coffee);margin:14px 0 7px}
-input{width:100%;height:50px;border:1px solid var(--line);border-radius:15px;padding:0 15px;background:white;outline:none;font:inherit}
-input:focus{border-color:var(--sage);box-shadow:0 0 0 3px rgba(125,143,105,.12)}
-button{width:100%;border:0;border-radius:15px;padding:14px;margin-top:20px;background:#111111;color:white;font-weight:900;cursor:pointer;font-size:16px}
-button:hover{filter:brightness(.95)}
-.msg{margin-top:14px;padding:11px 12px;border-radius:12px;display:none}
-.msg.show{display:block}
-.msg.bad{background:#fff0f0;color:var(--danger);border:1px solid #efb6b6}
-.msg.good{background:#eaf8ef;color:#245c35;border:1px solid #b9dfc4}
-.small{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-.small a{color:#111111;font-weight:800;text-decoration:none}
-.note{margin-top:24px;padding:12px;border-radius:12px;background:#eeeeee;color:#333333;font-size:12px;line-height:1.45}
-@media(max-width:800px){
-  .wrap{grid-template-columns:1fr}
-  .brand{min-height:300px;padding:32px}
-  .hero{margin-top:55px}.hero h2{font-size:34px}
-  .login{padding:36px 26px}
-}
-</style>
-</head>
+<script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("pos", "Checkout");
+document.getElementById("page").innerHTML=`
+<div class="checkout">
+<section class="catalog">
+  <div class="searchrow"><input id="search" placeholder="Search items…" oninput="renderItems()"><button class="btn" onclick="customAmount()">Custom amount</button></div>
+  <div class="tabs" id="tabs"></div>
+  <div class="item-grid" id="grid"></div>
+</section>
+<aside class="cart">
+  <div class="cart-head"><div><b>Current sale</b><div class="muted">Order #<span id="orderno"></span></div></div><button class="btn" onclick="clearCart()">Clear</button></div>
+  <div class="toolbar" style="margin-top:12px">
+    <button id="dine" class="btn" onclick="setType('Dine In')">Dine In</button>
+    <button id="take" class="btn" onclick="setType('Takeaway')">Takeaway</button>
+  </div>
+  <div style="margin-top:10px"><label>Table / customer name</label><input id="tableName" placeholder="Optional"></div>
+  <div class="cart-list" id="cartList"></div>
+  <div class="totalbox">
+    <div class="totalrow"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+    <div class="totalrow"><span>Discount</span><span id="discountAmt">$0.00</span></div>
+    <div class="totalrow grand"><span>Total</span><span id="total">$0.00</span></div>
+  </div>
+  <div class="quickbar"><button class="btn" onclick="applyDiscount(10)">10% off</button><button class="btn" onclick="holdSale()">Save cart</button><button class="btn" onclick="recallSale()">Recall</button></div>
+  <button class="paybtn" onclick="openPay()">Charge <span id="charge">$0.00</span></button>
+</aside></div>
 
-<body>
-<div class="wrap">
-  <section class="brand">
-    <div class="logo">
-      <div class="badge">IC</div>
-      <div>
-        <h1>Indulge Café</h1>
-        <small>Point of Sale</small>
-      </div>
-    </div>
+<div class="modal" id="payModal"><div class="modalbox"><h2>Take payment</h2><div class="paychoices">
+<button onclick="finish('Cash')">Cash</button><button onclick="finish('Card')">Card</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="closePay()">Cancel</button></div></div>
+`;
 
-    <div class="hero">
-      <h2>Freshly made, fast & friendly.</h2>
-      <p>Welcome to your Indulge Café & Takeaway POS for Glass House Mountains.</p>
-    </div>
+let cart = [];
+let type = "";
+let discount = 0;
+let activeCat = "Favorites";
 
-    <div class="chips">
-      <div class="chip">☕ Menu & checkout</div>
-      <div class="chip">🧾 Orders</div>
-      <div class="chip">📊 Reports</div>
-      <div class="chip">💵 End of day</div>
-    </div>
-  </section>
+let cloudProducts = [];
+let cloudCategories = [];
 
-  <section class="login">
-    <h2>Welcome back</h2>
-    <p>Sign in to continue to Indulge POS.</p>
 
-    <label>Email</label>
-    <input id="email" type="email" autocomplete="username" placeholder="you@example.com">
+function nextNo() {
 
-    <label>Password</label>
-    <input id="password" type="password" autocomplete="current-password" placeholder="Password">
+  let o = App.orders();
 
-    <button id="signInBtn">Sign in</button>
-
-    <div id="message" class="msg"></div>
-
-    <div class="small">
-      New account? <a href="register.html">Create account</a>
-    </div>
-
-    <div class="note">
-      Your login and POS data are connected to Supabase, so you can keep the older Indulge POS look while using the cloud database.
-    </div>
-  </section>
-</div>
-
-<script>
-const emailEl = document.getElementById("email");
-const passwordEl = document.getElementById("password");
-const signInBtn = document.getElementById("signInBtn");
-const messageEl = document.getElementById("message");
-
-function showMessage(text, good=false){
-  messageEl.textContent = text;
-  messageEl.className = "msg show " + (good ? "good" : "bad");
+  return o.length
+    ? Math.max(
+        ...o.map(
+          x => Number(x.orderNumber) || 0
+        )
+      ) + 1
+    : 1;
 }
 
-async function signIn(){
-  const email = emailEl.value.trim();
-  const password = passwordEl.value;
 
-  if(!email || !password){
-    showMessage("Please enter your email and password.");
+orderno.textContent = nextNo();
+
+
+async function loadCloudMenu() {
+
+  const {
+    data: categoryData,
+    error: categoryError
+  } =
+    await supabaseClient
+      .from("categories")
+      .select(`
+        id,
+        name,
+        active,
+        sort_order
+      `)
+      .eq("active", true)
+      .order("sort_order", {
+        ascending: true
+      });
+
+
+  if (categoryError) {
+
+    console.error(
+      "Category error:",
+      categoryError
+    );
+
+    throw categoryError;
+  }
+
+
+  const {
+    data: productData,
+    error: productError
+  } =
+    await supabaseClient
+      .from("products")
+      .select(`
+        id,
+        name,
+        price,
+        active,
+        favorite,
+        sort_order,
+        category_id,
+        categories (
+          id,
+          name
+        )
+      `)
+      .eq("active", true)
+      .order("sort_order", {
+        ascending: true
+      });
+
+
+  if (productError) {
+
+    console.error(
+      "Product error:",
+      productError
+    );
+
+    throw productError;
+  }
+
+
+  cloudCategories =
+    categoryData || [];
+
+
+  cloudProducts =
+    (productData || []).map(
+      function(p) {
+
+        return {
+
+          id: p.id,
+
+          name: p.name,
+
+          price:
+            Number(p.price),
+
+          category:
+            p.categories
+              ? p.categories.name
+              : "Other",
+
+          favorite:
+            p.favorite === true,
+
+          active:
+            p.active !== false
+        };
+
+      }
+    );
+
+
+  console.log(
+    "Cloud categories:",
+    cloudCategories
+  );
+
+  console.log(
+    "Cloud products:",
+    cloudProducts
+  );
+}
+
+
+function cats() {
+
+  return [
+    "Favorites",
+    ...cloudCategories.map(
+      c => c.name
+    )
+  ];
+}
+
+
+function renderTabs() {
+
+  tabs.innerHTML = "";
+
+  cats().forEach(
+    function(c) {
+
+      let b =
+        document.createElement(
+          "button"
+        );
+
+      b.className =
+        "tab" +
+        (
+          c === activeCat
+            ? " active"
+            : ""
+        );
+
+      b.textContent = c;
+
+
+      b.onclick =
+        function() {
+
+          activeCat = c;
+
+          renderTabs();
+
+          renderItems();
+        };
+
+
+      tabs.appendChild(b);
+
+    }
+  );
+}
+
+
+function renderItems() {
+
+  let q =
+    search.value
+      .trim()
+      .toLowerCase();
+
+
+  let ps =
+    cloudProducts.filter(
+      p =>
+        p.active !== false
+    );
+
+
+  if (
+    activeCat ===
+    "Favorites"
+  ) {
+
+    ps =
+      ps.filter(
+        p =>
+          p.favorite === true
+      );
+
+  } else {
+
+    ps =
+      ps.filter(
+        p =>
+          p.category ===
+          activeCat
+      );
+  }
+
+
+  if (q) {
+
+    ps =
+      ps.filter(
+        p =>
+          p.name
+            .toLowerCase()
+            .includes(q)
+      );
+  }
+
+
+  grid.innerHTML = "";
+
+
+  if (!ps.length) {
+
+    grid.innerHTML =
+      '<p class="muted">No items found.</p>';
+
     return;
   }
 
-  signInBtn.disabled = true;
-  signInBtn.textContent = "Signing in...";
 
-  try{
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email,
-      password
-    });
+  ps.forEach(
+    function(p) {
 
-    if(error) throw error;
+      let b =
+        document.createElement(
+          "button"
+        );
 
-    const user = data.user;
+      b.className =
+        "tile";
 
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("id,business_id,full_name,role,active")
-      .eq("id", user.id)
-      .single();
 
-    if(profileError) throw profileError;
+      b.innerHTML = `
+        <span class="cat">
+          ${p.category}
+        </span>
 
-    if(profile.active === false){
-      throw new Error("This POS user is disabled.");
+        <span class="name">
+          ${p.name}
+        </span>
+
+        <span class="price">
+          ${App.money(p.price)}
+        </span>
+      `;
+
+
+      b.onclick =
+        function() {
+          add(p);
+        };
+
+
+      grid.appendChild(b);
+
     }
+  );
+}
+function add(p){let x=cart.find(i=>i.id===p.id);if(x)x.qty++;else cart.push({id:p.id,name:p.name,price:Number(p.price),category:p.category,qty:1});renderCart()}
+function customAmount(){let v=Number(prompt("Custom amount"));if(v>0){cart.push({id:"custom-"+Date.now(),name:"Custom amount",price:v,category:"Custom",qty:1});renderCart()}}
+function setType(t){type=t;dine.classList.toggle('btn-dark',t==="Dine In");take.classList.toggle('btn-dark',t==="Takeaway")}
+function renderCart(){cartList.innerHTML="";let sub=0;if(!cart.length)cartList.innerHTML='<p class="muted">Tap an item to add it.</p>';cart.forEach((i,n)=>{sub+=i.price*i.qty;let d=document.createElement('div');d.className='cart-line';d.innerHTML=`<div class="row"><b>${i.name}</b><span>${App.money(i.price*i.qty)}</span></div><div class="qty"><button onclick="qty(${n},-1)">−</button><span>${i.qty}</span><button onclick="qty(${n},1)">+</button><button class="btn" style="padding:4px 8px;margin-left:auto" onclick="removeLine(${n})">Remove</button></div>`;cartList.appendChild(d)});let dis=sub*discount/100,t=sub-dis;subtotal.textContent=App.money(sub);discountAmt.textContent=App.money(dis);total.textContent=charge.textContent=App.money(t)}
+function qty(n,v){cart[n].qty+=v;if(cart[n].qty<=0)cart.splice(n,1);renderCart()}function removeLine(n){cart.splice(n,1);renderCart()}
+function applyDiscount(p){discount=discount===p?0:p;renderCart()}
+function clearCart(){if(!cart.length||confirm("Clear current sale?")){cart=[];discount=0;type="";tableName.value="";dine.classList.remove('btn-dark');take.classList.remove('btn-dark');renderCart()}}
+function holdSale(){if(!cart.length){alert("Nothing to save.");return}let h=App.held();h.push({id:App.nextId(h),name:tableName.value.trim()||("Saved cart "+new Date().toLocaleTimeString()),cart,discount,type});App.saveHeld(h);alert("Cart saved.");clearCart()}
+function recallSale(){let h=App.held();if(!h.length){alert("No saved carts.");return}let msg=h.map(x=>`${x.id}: ${x.name}`).join("\n"),id=Number(prompt("Enter saved cart number:\n"+msg));let x=h.find(z=>z.id===id);if(!x)return;cart=x.cart;discount=x.discount||0;type=x.type||"";h=h.filter(z=>z.id!==id);App.saveHeld(h);renderCart()}
+function openPay(){if(!cart.length){alert("Add items first.");return}if(!type){alert("Choose Dine In or Takeaway.");return}payModal.classList.add('show')}
+function closePay(){payModal.classList.remove('show')}
+function finish(method){let sub=cart.reduce((n,i)=>n+i.price*i.qty,0),tot=sub-sub*discount/100,os=App.orders(),no=nextNo();os.push({id:App.nextId(os),orderNumber:no,orderType:type,paymentMethod:method,subtotal:sub,discountPercent:discount,total:tot,tableName:tableName.value.trim(),createdAt:new Date().toISOString(),items:cart.map(x=>({...x}))});App.saveOrders(os);closePay();alert(`Payment recorded\nOrder #${no}\n${method}\n${App.money(tot)}`);clearCart();orderno.textContent=nextNo()}
+async function startPOS() {
 
-    localStorage.setItem("sqpos_session", JSON.stringify({
-      id: profile.id,
-      name: profile.full_name || email,
-      full_name: profile.full_name || email,
-      role: profile.role,
-      business_id: profile.business_id,
-      email: email
-    }));
+  try {
 
-    showMessage("Signed in successfully.", true);
-    window.location.href = "pos.html";
+    await loadCloudMenu();
 
-  }catch(error){
-    console.error(error);
-    showMessage(error.message || "Sign in failed.");
-  }finally{
-    signInBtn.disabled = false;
-    signInBtn.textContent = "Sign in";
+    renderTabs();
+    renderItems();
+    renderCart();
+
+  } catch (error) {
+
+    console.error(
+      "Cloud menu failed:",
+      error
+    );
+
+    alert(
+      "Could not load the cloud menu. Please check your internet connection and Supabase."
+    );
+
+    renderCart();
   }
 }
 
-signInBtn.addEventListener("click", signIn);
 
-passwordEl.addEventListener("keydown", event => {
-  if(event.key === "Enter") signIn();
-});
-
-(async function(){
-  const { data: { user } } = await supabaseClient.auth.getUser();
-  if(user){
-    window.location.href = "pos.html";
-  }
-})();
-</script>
-</body>
-</html>
+startPOS();
+</script></body></html>

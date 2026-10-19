@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Orders</title>
-<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script><link rel="stylesheet" href="square-theme.css"></head><body class="square-pos"><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
+<link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
 document.getElementById("shell").innerHTML=App.shell("orders", "Orders");
 document.getElementById("page").innerHTML=`
 <div class="container"><div class="card"><h2>Transactions</h2><div class="toolbar"><div><label>Date</label><input id="date" type="date" onchange="render()"></div><div><label>Payment</label><select id="pay" onchange="render()"><option value="">All</option><option>Cash</option><option>Card</option></select></div></div></div>
