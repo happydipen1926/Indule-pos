@@ -717,3 +717,155 @@ button {
         display: none;
     }
 }
+/* =========================================================
+   GLOBAL SQUARE POS NORMALISATION
+   Makes older POS pages use the same black/white appearance
+========================================================= */
+
+body.square-pos {
+    background: #f6f6f6 !important;
+    color: #111 !important;
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif !important;
+}
+
+
+/* HEADERS */
+
+body.square-pos header,
+body.square-pos .header,
+body.square-pos .topbar,
+body.square-pos .navbar {
+    background: #ffffff !important;
+    color: #111111 !important;
+
+    border-bottom: 1px solid #dedede !important;
+
+    box-shadow: none !important;
+}
+
+
+/* LINKS */
+
+body.square-pos a {
+    color: #111111;
+    text-decoration: none;
+}
+
+body.square-pos a:hover {
+    text-decoration: underline;
+}
+
+
+/* BUTTONS */
+
+body.square-pos button,
+body.square-pos .btn {
+    background: #ffffff;
+    color: #111111;
+
+    border: 1px solid #cccccc;
+
+    border-radius: 8px;
+
+    padding: 10px 14px;
+
+    font-weight: 600;
+}
+
+body.square-pos button:hover,
+body.square-pos .btn:hover {
+    background: #eeeeee;
+}
+
+
+/* PRIMARY BUTTONS */
+
+body.square-pos .primary,
+body.square-pos .btn-primary,
+body.square-pos button.primary {
+    background: #111111 !important;
+    color: white !important;
+    border-color: #111111 !important;
+}
+
+
+/* INPUTS */
+
+body.square-pos input,
+body.square-pos select,
+body.square-pos textarea {
+
+    background: white;
+
+    border: 1px solid #cccccc;
+
+    border-radius: 8px;
+
+    padding: 10px;
+
+    color: #111111;
+}
+
+
+/* TABLES */
+
+body.square-pos table {
+    width: 100%;
+
+    background: white;
+
+    border-collapse: collapse;
+
+    border-radius: 10px;
+
+    overflow: hidden;
+}
+
+body.square-pos th {
+    background: #f1f1f1;
+
+    padding: 12px;
+
+    text-align: left;
+
+    border-bottom: 1px solid #dddddd;
+}
+
+body.square-pos td {
+    padding: 12px;
+
+    border-bottom: 1px solid #eeeeee;
+}
+
+
+/* CARDS */
+
+body.square-pos .card,
+body.square-pos .panel,
+body.square-pos .box {
+
+    background: white !important;
+
+    border: 1px solid #e2e2e2 !important;
+
+    border-radius: 12px !important;
+
+    box-shadow:
+        0 2px 8px rgba(0,0,0,.05) !important;
+}
+
+
+/* HEADINGS */
+
+body.square-pos h1,
+body.square-pos h2,
+body.square-pos h3 {
+
+    color: #111111 !important;
+}
