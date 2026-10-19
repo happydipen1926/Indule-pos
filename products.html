@@ -3,301 +3,73 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Items</title>
+  <title>Items - Indulge Cafe POS</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
   <script src="data.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <style>
+    .status-pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;font-weight:700}
+    .on{background:#eaf8ef;color:#245c35}.off{background:#fff0f0;color:#8b2424}
+    .item-actions{display:flex;gap:6px;flex-wrap:wrap}.notice{padding:12px;border:1px solid #ddd;border-radius:10px;margin-bottom:12px}
+    .notice.ok{background:#eaf8ef;border-color:#b9dfc4}.notice.error{background:#fff0f0;border-color:#efb6b6}.notice.warn{background:#fff8e8;border-color:#ead39a}
+    .muted{color:#666}
+  </style>
 </head>
 <body>
 <div class="app-shell" id="shell"></div>
-
 <script>
-if (!App.requireLogin()) {
-  throw new Error("login required");
-}
-
-document.getElementById("shell").innerHTML = App.shell("products", "Items");
-
-document.getElementById("page").innerHTML = `
+if(!App.requireLogin()) throw new Error("login required");
+document.getElementById("shell").innerHTML=App.shell("products","Items");
+document.getElementById("page").innerHTML=`
 <div class="container">
-
+  <div id="msg"></div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-      <h2 style="margin:0">Item library</h2>
+      <div><h2 style="margin:0">Item Library</h2><p class="muted">This page uses the same Supabase products as your checkout.</p></div>
       <a class="btn" href="categories.html">Manage Categories</a>
     </div>
-
-    <div id="itemMessage" style="margin-top:12px"></div>
-
-    <div class="grid g4" style="margin-top:14px">
-      <div>
-        <label>Name</label>
-        <input id="productName" placeholder="e.g. Sweet Lip">
-      </div>
-
-      <div>
-        <label>Category</label>
-        <select id="productCategory"></select>
-      </div>
-
-      <div>
-        <label>Price</label>
-        <input id="productPrice" type="number" min="0" step="0.01" placeholder="14.00">
-      </div>
-
-      <div>
-        <label>&nbsp;</label>
-        <button id="addItemButton" class="btn btn-dark" style="width:100%">
-          Add item
-        </button>
-      </div>
+    <div class="grid g4">
+      <div><label>Name</label><input id="name" placeholder="e.g. Hoki"></div>
+      <div><label>Category</label><select id="cat"></select></div>
+      <div><label>Price</label><input id="price" type="number" min="0" step="0.01" placeholder="11.00"></div>
+      <div><label>&nbsp;</label><button id="add" class="btn btn-dark" style="width:100%">Add Item</button></div>
     </div>
   </div>
-
   <div class="card">
     <div class="toolbar">
-      <div>
-        <label>Search</label>
-        <input id="productSearch" placeholder="Search item library">
-      </div>
+      <div><label>Search</label><input id="search" placeholder="Search items"></div>
+      <div><label>Category</label><select id="filter"><option value="">All Categories</option></select></div>
+      <div><label>&nbsp;</label><button id="refresh" class="btn">Refresh</button></div>
     </div>
-
-    <div style="overflow:auto">
+    <div style="overflow:auto;margin-top:12px">
       <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Favourite</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="productRows"></tbody>
+        <thead><tr><th>Item</th><th>Category</th><th>Price</th><th>Favourite</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="rows"></tbody>
       </table>
     </div>
   </div>
+</div>`;
 
-</div>
-`;
-
-const productNameEl = document.getElementById("productName");
-const productCategoryEl = document.getElementById("productCategory");
-const productPriceEl = document.getElementById("productPrice");
-const productSearchEl = document.getElementById("productSearch");
-const productRowsEl = document.getElementById("productRows");
-const itemMessageEl = document.getElementById("itemMessage");
-const addItemButtonEl = document.getElementById("addItemButton");
-
-function showItemMessage(text, type = "success") {
-  itemMessageEl.innerHTML = `
-    <div class="notice" style="${type === "success"
-      ? "background:#eaf8ef;border-color:#b9dfc4"
-      : "background:#fff0f0;border-color:#efb6b6"}">
-      ${text}
-    </div>
-  `;
-
-  setTimeout(function () {
-    itemMessageEl.innerHTML = "";
-  }, 3000);
-}
-
-function fillCategories() {
-  const categories = App.categories().filter(function (category) {
-    return category.active !== false;
-  });
-
-  productCategoryEl.innerHTML = "";
-
-  if (!categories.length) {
-    const option = document.createElement("option");
-    option.value = "";
-    option.textContent = "No categories available";
-    productCategoryEl.appendChild(option);
-    return;
-  }
-
-  categories.forEach(function (category) {
-    const option = document.createElement("option");
-    option.value = category.name;
-    option.textContent = category.name;
-    productCategoryEl.appendChild(option);
-  });
-}
-
-function addProduct() {
-  const productName = productNameEl.value.trim();
-  const category = productCategoryEl.value;
-  const priceText = productPriceEl.value.trim();
-  const price = Number(priceText);
-
-  if (!productName) {
-    showItemMessage("Please enter the item name.", "error");
-    productNameEl.focus();
-    return;
-  }
-
-  if (!category) {
-    showItemMessage("Please select a category.", "error");
-    return;
-  }
-
-  if (priceText === "" || Number.isNaN(price) || price < 0) {
-    showItemMessage("Please enter a valid price.", "error");
-    productPriceEl.focus();
-    return;
-  }
-
-  const products = App.products();
-
-  products.push({
-    id: App.nextId(products),
-    name: productName,
-    category: category,
-    price: price,
-    active: true,
-    favorite: false
-  });
-
-  App.saveProducts(products);
-
-  productNameEl.value = "";
-  productPriceEl.value = "";
-
-  showItemMessage(productName + " added successfully.");
-  renderProducts();
-  productNameEl.focus();
-}
-
-function editProduct(id) {
-  const products = App.products();
-  const product = products.find(function (item) {
-    return Number(item.id) === Number(id);
-  });
-
-  if (!product) return;
-
-  const newName = prompt("Item name:", product.name);
-  if (newName === null) return;
-
-  const newCategory = prompt("Category:", product.category);
-  if (newCategory === null) return;
-
-  const newPriceText = prompt("Price:", product.price);
-  if (newPriceText === null) return;
-
-  const newPrice = Number(newPriceText);
-
-  if (!newName.trim() || !newCategory.trim() || Number.isNaN(newPrice) || newPrice < 0) {
-    alert("Please enter valid item details.");
-    return;
-  }
-
-  product.name = newName.trim();
-  product.category = newCategory.trim();
-  product.price = newPrice;
-
-  App.saveProducts(products);
-  renderProducts();
-}
-
-function toggleFavourite(id) {
-  const products = App.products();
-  const product = products.find(function (item) {
-    return Number(item.id) === Number(id);
-  });
-
-  if (!product) return;
-
-  product.favorite = !product.favorite;
-  App.saveProducts(products);
-  renderProducts();
-}
-
-function toggleAvailability(id) {
-  const products = App.products();
-  const product = products.find(function (item) {
-    return Number(item.id) === Number(id);
-  });
-
-  if (!product) return;
-
-  product.active = product.active === false;
-  App.saveProducts(products);
-  renderProducts();
-}
-
-function deleteProduct(id) {
-  if (!confirm("Delete this item permanently?")) return;
-
-  const products = App.products().filter(function (item) {
-    return Number(item.id) !== Number(id);
-  });
-
-  App.saveProducts(products);
-  renderProducts();
-}
-
-function renderProducts() {
-  const search = productSearchEl.value.trim().toLowerCase();
-
-  const products = App.products()
-    .filter(function (product) {
-      return !search ||
-        product.name.toLowerCase().includes(search) ||
-        product.category.toLowerCase().includes(search);
-    })
-    .sort(function (a, b) {
-      return a.category.localeCompare(b.category) ||
-        a.name.localeCompare(b.name);
-    });
-
-  productRowsEl.innerHTML = "";
-
-  products.forEach(function (product) {
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-      <td><b>${product.name}</b></td>
-      <td>${product.category}</td>
-      <td>${App.money(product.price)}</td>
-      <td>
-        <button class="btn" onclick="toggleFavourite(${product.id})">
-          ${product.favorite ? "★" : "☆"}
-        </button>
-      </td>
-      <td>
-        <span class="badge ${product.active === false ? "bad" : "good"}">
-          ${product.active === false ? "Unavailable" : "Available"}
-        </span>
-      </td>
-      <td>
-        <button class="btn" onclick="editProduct(${product.id})">Edit</button>
-        <button class="btn" onclick="toggleAvailability(${product.id})">
-          ${product.active === false ? "Enable" : "Disable"}
-        </button>
-        <button class="btn btn-bad" onclick="deleteProduct(${product.id})">
-          Delete
-        </button>
-      </td>
-    `;
-
-    productRowsEl.appendChild(row);
-  });
-}
-
-addItemButtonEl.addEventListener("click", addProduct);
-productSearchEl.addEventListener("input", renderProducts);
-
-productPriceEl.addEventListener("keydown", function (event) {
-  if (event.key === "Enter") addProduct();
-});
-
-fillCategories();
-renderProducts();
+const $=id=>document.getElementById(id);
+let profile=null,categories=[],products=[];
+function esc(v){return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;")}
+function msg(t,type="ok"){$("msg").innerHTML=`<div class="notice ${type}">${esc(t)}</div>`;setTimeout(()=>$("msg").innerHTML="",4000)}
+async function getProfile(){const {data:{user},error}=await supabaseClient.auth.getUser();if(error||!user)return null;const r=await supabaseClient.from("profiles").select("id,business_id,full_name,role,active").eq("id",user.id).single();if(r.error)throw r.error;return r.data.active===false?null:r.data}
+async function loadCats(){const r=await supabaseClient.from("categories").select("id,name,active,sort_order").eq("business_id",profile.business_id).order("sort_order",{ascending:true}).order("name",{ascending:true});if(r.error)throw r.error;categories=r.data||[];$("cat").innerHTML="";$("filter").innerHTML='<option value="">All Categories</option>';categories.filter(c=>c.active!==false).forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.name;$("cat").appendChild(o);const f=document.createElement("option");f.value=c.id;f.textContent=c.name;$("filter").appendChild(f)})}
+async function loadProducts(){const r=await supabaseClient.from("products").select(`id,business_id,category_id,name,price,active,favorite,sort_order,categories(id,name)`).eq("business_id",profile.business_id).order("sort_order",{ascending:true}).order("name",{ascending:true});if(r.error)throw r.error;products=(r.data||[]).map(p=>({...p,price:Number(p.price),active:p.active!==false,favorite:p.favorite===true,category_name:p.categories?.name||"Uncategorised"}));render()}
+function render(){const q=$("search").value.trim().toLowerCase(),cf=$("filter").value;const list=products.filter(p=>(!q||p.name.toLowerCase().includes(q)||p.category_name.toLowerCase().includes(q))&&(!cf||String(p.category_id)===String(cf)));$("rows").innerHTML="";if(!list.length){$("rows").innerHTML='<tr><td colspan="6" class="muted">No items found.</td></tr>';return}list.forEach(p=>{const tr=document.createElement("tr");tr.innerHTML=`<td><b>${esc(p.name)}</b><div class="muted" style="font-size:12px">ID ${p.id}</div></td><td>${esc(p.category_name)}</td><td>$${p.price.toFixed(2)}</td><td>${p.favorite?"★ Yes":"☆ No"}</td><td><span class="status-pill ${p.active?"on":"off"}">${p.active?"Available":"Unavailable"}</span></td><td><div class="item-actions"><button class="btn" onclick="editItem(${p.id})">Edit</button><button class="btn" onclick="toggleFav(${p.id})">${p.favorite?"Unfavourite":"Favourite"}</button><button class="btn" onclick="toggleActive(${p.id})">${p.active?"Make Unavailable":"Make Available"}</button><button class="btn" onclick="deleteItem(${p.id})">Delete</button></div></td>`;$("rows").appendChild(tr)})}
+async function addItem(){const name=$("name").value.trim(),category_id=Number($("cat").value),price=Number($("price").value);if(!name)return msg("Enter an item name.","error");if(!category_id)return msg("Choose a category.","error");if(!Number.isFinite(price)||price<0)return msg("Enter a valid price.","error");if(products.some(p=>p.name.trim().toLowerCase()===name.toLowerCase()&&Number(p.category_id)===category_id))return msg("This item already exists in that category.","warn");const maxSort=products.reduce((m,p)=>Math.max(m,Number(p.sort_order||0)),0);const r=await supabaseClient.from("products").insert({business_id:profile.business_id,category_id,name,price,active:true,favorite:false,sort_order:maxSort+1});if(r.error)throw r.error;$("name").value="";$("price").value="";msg("Item added.");await loadProducts()}
+async function editItem(id){const p=products.find(x=>Number(x.id)===Number(id));if(!p)return;const name=prompt("Item name:",p.name);if(name===null)return;const priceInput=prompt("Price:",p.price.toFixed(2));if(priceInput===null)return;const price=Number(priceInput);if(!name.trim()||!Number.isFinite(price)||price<0)return alert("Invalid name or price.");const opts=categories.filter(c=>c.active!==false).map(c=>`${c.id}: ${c.name}`).join("\n");const catInput=prompt("Category ID:\n\n"+opts,p.category_id);if(catInput===null)return;const category_id=Number(catInput);if(!categories.some(c=>Number(c.id)===category_id))return alert("Invalid category ID.");const r=await supabaseClient.from("products").update({name:name.trim(),price,category_id,updated_at:new Date().toISOString()}).eq("id",p.id).eq("business_id",profile.business_id);if(r.error)throw r.error;msg("Item updated.");await loadProducts()}
+async function toggleFav(id){const p=products.find(x=>Number(x.id)===Number(id));const r=await supabaseClient.from("products").update({favorite:!p.favorite,updated_at:new Date().toISOString()}).eq("id",p.id).eq("business_id",profile.business_id);if(r.error)throw r.error;await loadProducts()}
+async function toggleActive(id){const p=products.find(x=>Number(x.id)===Number(id));const r=await supabaseClient.from("products").update({active:!p.active,updated_at:new Date().toISOString()}).eq("id",p.id).eq("business_id",profile.business_id);if(r.error)throw r.error;await loadProducts()}
+async function deleteItem(id){const p=products.find(x=>Number(x.id)===Number(id));if(!confirm(`Delete "${p.name}" permanently?\n\nIf it has order history, use Make Unavailable instead.`))return;const r=await supabaseClient.from("products").delete().eq("id",p.id).eq("business_id",profile.business_id);if(r.error){msg("Could not delete. If this item has order history, use Make Unavailable instead. "+r.error.message,"warn");return}msg("Item deleted.");await loadProducts()}
+async function refreshAll(){try{await loadCats();await loadProducts()}catch(e){console.error(e);msg(e.message||"Could not load Supabase items.","error")}}
+$("search").addEventListener("input",render);$("filter").addEventListener("change",render);$("add").addEventListener("click",()=>addItem().catch(e=>msg(e.message,"error")));$("refresh").addEventListener("click",refreshAll);
+window.editItem=id=>editItem(id).catch(e=>msg(e.message,"error"));window.toggleFav=id=>toggleFav(id).catch(e=>msg(e.message,"error"));window.toggleActive=id=>toggleActive(id).catch(e=>msg(e.message,"error"));window.deleteItem=id=>deleteItem(id).catch(e=>msg(e.message,"error"));
+(async()=>{try{profile=await getProfile();if(!profile)return alert("Could not load your POS profile.");await refreshAll()}catch(e){console.error(e);msg(e.message||"Could not start Items page.","error")}})();
 </script>
 </body>
 </html>
