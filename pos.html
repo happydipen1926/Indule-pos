@@ -56,4 +56,167 @@ async function getCurrentProfile() {
 
 
   return profile;
+}let paymentBusy = false;
+
+async function finish(method) {
+
+  if (paymentBusy) return;
+
+  if (!cart.length) {
+    alert("There are no items in the cart.");
+    return;
+  }
+
+  if (!type) {
+    alert("Please choose Dine In or Takeaway.");
+    return;
+  }
+
+  paymentBusy = true;
+
+  try {
+
+    const profile = await getCurrentProfile();
+
+    if (!profile) {
+      alert("Could not identify the logged-in user.");
+      return;
+    }
+
+    const subtotal = cart.reduce(
+      (total, item) =>
+        total + Number(item.price) * Number(item.qty),
+      0
+    );
+
+    const discountAmount =
+      subtotal * Number(discount || 0) / 100;
+
+    const total =
+      subtotal - discountAmount;
+
+    const customerOrTable =
+      tableName.value.trim();
+
+    const {
+      data: order,
+      error: orderError
+    } = await supabaseClient
+      .from("orders")
+      .insert({
+        business_id: profile.business_id,
+        order_type: type,
+        payment_method: method,
+        subtotal: subtotal,
+        discount_percent: Number(discount || 0),
+        discount_amount: discountAmount,
+        total: total,
+
+        table_name:
+          type === "Dine In"
+            ? customerOrTable || null
+            : null,
+
+        customer_name:
+          type === "Takeaway"
+            ? customerOrTable || null
+            : null,
+
+        created_by: profile.id,
+        status: "pending"
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error(orderError);
+      alert(
+        "Order could not be saved:\n" +
+        orderError.message
+      );
+      return;
+    }
+
+    const itemRows = cart.map(item => ({
+      order_id: order.id,
+
+      product_id:
+        typeof item.id === "number"
+          ? item.id
+          : null,
+
+      product_name: item.name,
+      category_name: item.category || null,
+      unit_price: Number(item.price),
+      quantity: Number(item.qty),
+
+      line_total:
+        Number(item.price) *
+        Number(item.qty)
+    }));
+
+    const {
+      error: itemsError
+    } = await supabaseClient
+      .from("order_items")
+      .insert(itemRows);
+
+    if (itemsError) {
+      console.error(itemsError);
+
+      alert(
+        "Order created, but items could not be saved:\n" +
+        itemsError.message
+      );
+
+      return;
+    }
+
+    const {
+      error: completeError
+    } = await supabaseClient
+      .from("orders")
+      .update({
+        status: "completed"
+      })
+      .eq("id", order.id);
+
+    if (completeError) {
+      console.error(completeError);
+
+      alert(
+        "Order was saved but could not be completed."
+      );
+
+      return;
+    }
+
+    closePay();
+
+    alert(
+      "Payment recorded successfully\n\n" +
+      "Order #" +
+      order.order_number +
+      "\n" +
+      method +
+      "\n" +
+      App.money(total)
+    );
+
+    clearCart();
+
+    orderno.textContent = "Auto";
+
+  } catch (error) {
+
+    console.error(error);
+
+    alert(
+      "Something went wrong while saving the order."
+    );
+
+  } finally {
+
+    paymentBusy = false;
+  }
 }
