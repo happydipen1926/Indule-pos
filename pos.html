@@ -1,365 +1,59 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Checkout</title>
-<link rel="stylesheet" href="styles.css">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-client.js"></script>
-
-<script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
-document.getElementById("shell").innerHTML=App.shell("pos", "Checkout");
-document.getElementById("page").innerHTML=`
-<div class="checkout">
-<section class="catalog">
-  <div class="searchrow"><input id="search" placeholder="Search items…" oninput="renderItems()"><button class="btn" onclick="customAmount()">Custom amount</button></div>
-  <div class="tabs" id="tabs"></div>
-  <div class="item-grid" id="grid"></div>
-</section>
-<aside class="cart">
-  <div class="cart-head"><div><b>Current sale</b><div class="muted">Order #<span id="orderno"></span></div></div><button class="btn" onclick="clearCart()">Clear</button></div>
-  <div class="toolbar" style="margin-top:12px">
-    <button id="dine" class="btn" onclick="setType('Dine In')">Dine In</button>
-    <button id="take" class="btn" onclick="setType('Takeaway')">Takeaway</button>
-  </div>
-  <div style="margin-top:10px"><label>Table / customer name</label><input id="tableName" placeholder="Optional"></div>
-  <div class="cart-list" id="cartList"></div>
-  <div class="totalbox">
-    <div class="totalrow"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
-    <div class="totalrow"><span>Discount</span><span id="discountAmt">$0.00</span></div>
-    <div class="totalrow grand"><span>Total</span><span id="total">$0.00</span></div>
-  </div>
-  <div class="quickbar"><button class="btn" onclick="applyDiscount(10)">10% off</button><button class="btn" onclick="holdSale()">Save cart</button><button class="btn" onclick="recallSale()">Recall</button></div>
-  <button class="paybtn" onclick="openPay()">Charge <span id="charge">$0.00</span></button>
-</aside></div>
-
-<div class="modal" id="payModal"><div class="modalbox"><h2>Take payment</h2><div class="paychoices">
-<button onclick="finish('Cash')">Cash</button><button onclick="finish('Card')">Card</button></div><button class="btn" style="width:100%;margin-top:10px" onclick="closePay()">Cancel</button></div></div>
-`;
-
-let cart = [];
-let type = "";
-let discount = 0;
-let activeCat = "Favorites";
-
-let cloudProducts = [];
-let cloudCategories = [];
-
-
-function nextNo() {
-
-  let o = App.orders();
-
-  return o.length
-    ? Math.max(
-        ...o.map(
-          x => Number(x.orderNumber) || 0
-        )
-      ) + 1
-    : 1;
-}
-
-
-orderno.textContent = nextNo();
-
-
-async function loadCloudMenu() {
+async function getCurrentProfile() {
 
   const {
-    data: categoryData,
-    error: categoryError
-  } =
-    await supabaseClient
-      .from("categories")
-      .select(`
-        id,
-        name,
-        active,
-        sort_order
-      `)
-      .eq("active", true)
-      .order("sort_order", {
-        ascending: true
-      });
+    data: { user },
+    error: userError
+  } = await supabaseClient.auth.getUser();
 
 
-  if (categoryError) {
+  if (userError || !user) {
 
     console.error(
-      "Category error:",
-      categoryError
+      "User error:",
+      userError
     );
 
-    throw categoryError;
+    return null;
   }
 
 
   const {
-    data: productData,
-    error: productError
+    data: profile,
+    error: profileError
   } =
     await supabaseClient
-      .from("products")
+      .from("profiles")
       .select(`
         id,
-        name,
-        price,
-        active,
-        favorite,
-        sort_order,
-        category_id,
-        categories (
-          id,
-          name
-        )
+        business_id,
+        full_name,
+        role,
+        active
       `)
-      .eq("active", true)
-      .order("sort_order", {
-        ascending: true
-      });
+      .eq("id", user.id)
+      .single();
 
 
-  if (productError) {
+  if (profileError) {
 
     console.error(
-      "Product error:",
-      productError
+      "Profile error:",
+      profileError
     );
 
-    throw productError;
+    return null;
   }
 
 
-  cloudCategories =
-    categoryData || [];
-
-
-  cloudProducts =
-    (productData || []).map(
-      function(p) {
-
-        return {
-
-          id: p.id,
-
-          name: p.name,
-
-          price:
-            Number(p.price),
-
-          category:
-            p.categories
-              ? p.categories.name
-              : "Other",
-
-          favorite:
-            p.favorite === true,
-
-          active:
-            p.active !== false
-        };
-
-      }
-    );
-
-
-  console.log(
-    "Cloud categories:",
-    cloudCategories
-  );
-
-  console.log(
-    "Cloud products:",
-    cloudProducts
-  );
-}
-
-
-function cats() {
-
-  return [
-    "Favorites",
-    ...cloudCategories.map(
-      c => c.name
-    )
-  ];
-}
-
-
-function renderTabs() {
-
-  tabs.innerHTML = "";
-
-  cats().forEach(
-    function(c) {
-
-      let b =
-        document.createElement(
-          "button"
-        );
-
-      b.className =
-        "tab" +
-        (
-          c === activeCat
-            ? " active"
-            : ""
-        );
-
-      b.textContent = c;
-
-
-      b.onclick =
-        function() {
-
-          activeCat = c;
-
-          renderTabs();
-
-          renderItems();
-        };
-
-
-      tabs.appendChild(b);
-
-    }
-  );
-}
-
-
-function renderItems() {
-
-  let q =
-    search.value
-      .trim()
-      .toLowerCase();
-
-
-  let ps =
-    cloudProducts.filter(
-      p =>
-        p.active !== false
-    );
-
-
-  if (
-    activeCat ===
-    "Favorites"
-  ) {
-
-    ps =
-      ps.filter(
-        p =>
-          p.favorite === true
-      );
-
-  } else {
-
-    ps =
-      ps.filter(
-        p =>
-          p.category ===
-          activeCat
-      );
-  }
-
-
-  if (q) {
-
-    ps =
-      ps.filter(
-        p =>
-          p.name
-            .toLowerCase()
-            .includes(q)
-      );
-  }
-
-
-  grid.innerHTML = "";
-
-
-  if (!ps.length) {
-
-    grid.innerHTML =
-      '<p class="muted">No items found.</p>';
-
-    return;
-  }
-
-
-  ps.forEach(
-    function(p) {
-
-      let b =
-        document.createElement(
-          "button"
-        );
-
-      b.className =
-        "tile";
-
-
-      b.innerHTML = `
-        <span class="cat">
-          ${p.category}
-        </span>
-
-        <span class="name">
-          ${p.name}
-        </span>
-
-        <span class="price">
-          ${App.money(p.price)}
-        </span>
-      `;
-
-
-      b.onclick =
-        function() {
-          add(p);
-        };
-
-
-      grid.appendChild(b);
-
-    }
-  );
-}
-function add(p){let x=cart.find(i=>i.id===p.id);if(x)x.qty++;else cart.push({id:p.id,name:p.name,price:Number(p.price),category:p.category,qty:1});renderCart()}
-function customAmount(){let v=Number(prompt("Custom amount"));if(v>0){cart.push({id:"custom-"+Date.now(),name:"Custom amount",price:v,category:"Custom",qty:1});renderCart()}}
-function setType(t){type=t;dine.classList.toggle('btn-dark',t==="Dine In");take.classList.toggle('btn-dark',t==="Takeaway")}
-function renderCart(){cartList.innerHTML="";let sub=0;if(!cart.length)cartList.innerHTML='<p class="muted">Tap an item to add it.</p>';cart.forEach((i,n)=>{sub+=i.price*i.qty;let d=document.createElement('div');d.className='cart-line';d.innerHTML=`<div class="row"><b>${i.name}</b><span>${App.money(i.price*i.qty)}</span></div><div class="qty"><button onclick="qty(${n},-1)">−</button><span>${i.qty}</span><button onclick="qty(${n},1)">+</button><button class="btn" style="padding:4px 8px;margin-left:auto" onclick="removeLine(${n})">Remove</button></div>`;cartList.appendChild(d)});let dis=sub*discount/100,t=sub-dis;subtotal.textContent=App.money(sub);discountAmt.textContent=App.money(dis);total.textContent=charge.textContent=App.money(t)}
-function qty(n,v){cart[n].qty+=v;if(cart[n].qty<=0)cart.splice(n,1);renderCart()}function removeLine(n){cart.splice(n,1);renderCart()}
-function applyDiscount(p){discount=discount===p?0:p;renderCart()}
-function clearCart(){if(!cart.length||confirm("Clear current sale?")){cart=[];discount=0;type="";tableName.value="";dine.classList.remove('btn-dark');take.classList.remove('btn-dark');renderCart()}}
-function holdSale(){if(!cart.length){alert("Nothing to save.");return}let h=App.held();h.push({id:App.nextId(h),name:tableName.value.trim()||("Saved cart "+new Date().toLocaleTimeString()),cart,discount,type});App.saveHeld(h);alert("Cart saved.");clearCart()}
-function recallSale(){let h=App.held();if(!h.length){alert("No saved carts.");return}let msg=h.map(x=>`${x.id}: ${x.name}`).join("\n"),id=Number(prompt("Enter saved cart number:\n"+msg));let x=h.find(z=>z.id===id);if(!x)return;cart=x.cart;discount=x.discount||0;type=x.type||"";h=h.filter(z=>z.id!==id);App.saveHeld(h);renderCart()}
-function openPay(){if(!cart.length){alert("Add items first.");return}if(!type){alert("Choose Dine In or Takeaway.");return}payModal.classList.add('show')}
-function closePay(){payModal.classList.remove('show')}
-function finish(method){let sub=cart.reduce((n,i)=>n+i.price*i.qty,0),tot=sub-sub*discount/100,os=App.orders(),no=nextNo();os.push({id:App.nextId(os),orderNumber:no,orderType:type,paymentMethod:method,subtotal:sub,discountPercent:discount,total:tot,tableName:tableName.value.trim(),createdAt:new Date().toISOString(),items:cart.map(x=>({...x}))});App.saveOrders(os);closePay();alert(`Payment recorded\nOrder #${no}\n${method}\n${App.money(tot)}`);clearCart();orderno.textContent=nextNo()}
-async function startPOS() {
-
-  try {
-
-    await loadCloudMenu();
-
-    renderTabs();
-    renderItems();
-    renderCart();
-
-  } catch (error) {
-
-    console.error(
-      "Cloud menu failed:",
-      error
-    );
+  if (profile.active === false) {
 
     alert(
-      "Could not load the cloud menu. Please check your internet connection and Supabase."
+      "This POS user is disabled."
     );
 
-    renderCart();
+    return null;
   }
+
+
+  return profile;
 }
-
-
-startPOS();
-</script></body></html>
