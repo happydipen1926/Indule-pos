@@ -67,8 +67,8 @@ a{
   background:
     linear-gradient(
       180deg,
-      #6b534e,
-      #4f3c38
+     #111111,
+      #000000
     );
   color:#fff;
   padding:14px 10px;
@@ -99,13 +99,13 @@ a{
   border-radius:10px;
   text-align:center;
   font-size:12px;
-  color:#f2e6df;
+  color:#ffffff;
   transition:.2s;
 }
 
 .side a:hover,
 .side a.active{
-  background:#8a6c64;
+  background:#333333;
   color:#fff;
 }
 
