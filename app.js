@@ -280,243 +280,213 @@
 
     shell(active,title){
 
-      const adminItems = [
+  const adminItems = [
 
-  [
-    "dashboard.html",
-    "⌂",
-    "Home",
-    "home"
-  ],
+    [
+      "dashboard.html",
+      "⌂",
+      "Home",
+      "home"
+    ],
 
-  [
-    "pos.html",
-    "▦",
-    "Checkout",
-    "pos"
-  ],
+    [
+      "pos.html",
+      "▦",
+      "Checkout",
+      "pos"
+    ],
 
-  [
-    "orders.html",
-    "≡",
-    "Orders",
-    "orders"
-  ],
+    [
+      "orders.html",
+      "≡",
+      "Orders",
+      "orders"
+    ],
 
-  [
-    "clock.html",
-    "◷",
-    "Clock",
-    "clock"
-  ],
+    [
+      "clock.html",
+      "◷",
+      "Clock",
+      "clock"
+    ],
 
-  [
-    "products.html",
-    "□",
-    "Items",
-    "products"
-  ],
+    [
+      "products.html",
+      "□",
+      "Items",
+      "products"
+    ],
 
-  [
-    "sales.html",
-    "▥",
-    "Reports",
-    "sales"
-  ],
+    [
+      "sales.html",
+      "▥",
+      "Reports",
+      "sales"
+    ],
 
-  [
-    "staff.html",
-    "♙",
-    "Staff",
-    "staff"
-  ],
+    [
+      "staff.html",
+      "♙",
+      "Staff",
+      "staff"
+    ],
 
-  [
-    "backup.html",
-    "⇩",
-    "Backup",
-    "backup"
-  ],
+    [
+      "backup.html",
+      "⇩",
+      "Backup",
+      "backup"
+    ],
 
-  [
-    "settings.html",
-    "⚙",
-    "Settings",
-    "settings"
-  ]
+    [
+      "settings.html",
+      "⚙",
+      "Settings",
+      "settings"
+    ]
 
-];
-
-
-      const staffItems = [
-
-        [
-          "dashboard.html",
-          "⌂",
-          "Home",
-          "home"
-        ],
-
-        [
-          "pos.html",
-          "▦",
-          "Checkout",
-          "pos"
-        ],
-
-        [
-          "orders.html",
-          "≡",
-          "Orders",
-          "orders"
-        ]
-      ];
-[
-  "clock.html",
-  "◷",
-  "Clock",
-  "clock"
-],const staffItems = [
-
-  [
-    "dashboard.html",
-    "⌂",
-    "Home",
-    "home"
-  ],
-
-  [
-    "pos.html",
-    "▦",
-    "Checkout",
-    "pos"
-  ],
-
-  [
-    "orders.html",
-    "≡",
-    "Orders",
-    "orders"
-  ],
-
-  [
-    "clock.html",
-    "◷",
-    "Clock",
-    "clock"
-  ]
-
-];
-
-      const items =
-        this.isAdmin()
-          ? adminItems
-          : staffItems;
+  ];
 
 
-      const session =
-        this.session() || {};
+  const staffItems = [
+
+    [
+      "dashboard.html",
+      "⌂",
+      "Home",
+      "home"
+    ],
+
+    [
+      "pos.html",
+      "▦",
+      "Checkout",
+      "pos"
+    ],
+
+    [
+      "orders.html",
+      "≡",
+      "Orders",
+      "orders"
+    ],
+
+    [
+      "clock.html",
+      "◷",
+      "Clock",
+      "clock"
+    ]
+
+  ];
 
 
-      const roleLabel =
-        this.isAdmin()
-          ? "Admin"
-          : "Staff";
+  const items =
+    this.isAdmin()
+      ? adminItems
+      : staffItems;
 
 
-      return `
-        <div class="side">
+  const session =
+    this.session() || {};
 
-          <div class="logo">
-            I
-          </div>
+
+  const roleLabel =
+    this.isAdmin()
+      ? "Admin"
+      : "Staff";
+
+
+  return `
+    <div class="side">
+
+      <div class="logo">
+        I
+      </div>
+
+      ${
+        items
+          .map(
+            x => `
+              <a
+                class="${
+                  active === x[3]
+                    ? "active"
+                    : ""
+                }"
+                href="${x[0]}"
+              >
+
+                <span class="ico">
+                  ${x[1]}
+                </span>
+
+                ${x[2]}
+
+              </a>
+            `
+          )
+          .join("")
+      }
+
+      <a
+        href="#"
+        onclick="
+          App.logout();
+          return false;
+        "
+      >
+
+        <span class="ico">
+          ↪
+        </span>
+
+        Logout
+
+      </a>
+
+    </div>
+
+
+    <div class="main">
+
+      <div class="top">
+
+        <div class="brand">
 
           ${
-            items
-              .map(
-                x => `
-                  <a
-                    class="${
-                      active === x[3]
-                        ? "active"
-                        : ""
-                    }"
-                    href="${x[0]}"
-                  >
-
-                    <span class="ico">
-                      ${x[1]}
-                    </span>
-
-                    ${x[2]}
-
-                  </a>
-                `
-              )
-              .join("")
+            title ||
+            this.settings().businessName ||
+            "Indulge Cafe"
           }
 
-          <a
-            href="#"
-            onclick="
-              App.logout();
-              return false;
-            "
-          >
-
-            <span class="ico">
-              ↪
-            </span>
-
-            Logout
-
-          </a>
-
         </div>
 
 
-        <div class="main">
+        <div>
 
-          <div class="top">
+          ${
+            session.name || ""
+          }
 
-            <div class="brand">
+          ${
+            session.name
+              ? " · "
+              : ""
+          }
 
-              ${
-                title ||
-                this.settings()
-                  .businessName ||
-                "Indulge Cafe"
-              }
-
-            </div>
-
-
-            <div>
-
-              ${
-                session.name ||
-                ""
-              }
-
-              ${
-                session.name
-                  ? " · "
-                  : ""
-              }
-
-              ${roleLabel}
-
-            </div>
-
-          </div>
-
-          <div id="page"></div>
+          ${roleLabel}
 
         </div>
-      `;
-    },
 
+      </div>
 
+      <div id="page"></div>
+
+    </div>
+  `;
+
+},
     exportBackup(){
 
       const payload = {
