@@ -2,7 +2,15 @@
 <link rel="stylesheet" href="styles.css"><script src="data.js"></script><script src="config.js"></script><script src="app.js"></script></head><body><div class="app-shell" id="shell"></div><script>if(!App.requireLogin()) throw new Error("login required");
 document.getElementById("shell").innerHTML=App.shell("sales", "Reports");
 document.getElementById("page").innerHTML=`
-<div class="container"><div class="card"><h2>Reports</h2><div class="toolbar"><div><label>From</label><input id="from" type="date"></div><div><label>To</label><input id="to" type="date"></div><div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="today()">Today</button></div><div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="month()">Month</button></div><div style="flex:0"><label>&nbsp;</label><button class="btn btn-dark" onclick="render()">Apply</button></div></div></div>
+<div class="container"><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+
+  <h2>Sales Reports</h2>
+
+  <a class="btn btn-dark" href="cashout.html">
+    Cashout / End of Day
+  </a>
+
+</div><div class="toolbar"><div><label>From</label><input id="from" type="date"></div><div><label>To</label><input id="to" type="date"></div><div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="today()">Today</button></div><div style="flex:0"><label>&nbsp;</label><button class="btn" onclick="month()">Month</button></div><div style="flex:0"><label>&nbsp;</label><button class="btn btn-dark" onclick="render()">Apply</button></div></div></div>
 <div class="grid g4"><div class="stat"><div class="k">Sales</div><div class="v" id="tot">$0</div></div><div class="stat"><div class="k">Cash</div><div class="v" id="cash">$0</div></div><div class="stat"><div class="k">Card</div><div class="v" id="card">$0</div></div><div class="stat"><div class="k">Orders / Avg</div><div class="v"><span id="count">0</span> / <span id="avg">$0</span></div></div></div>
 <div class="grid g2"><div class="card"><h3>Top items</h3><table><thead><tr><th>Item</th><th>Qty</th><th>Sales</th></tr></thead><tbody id="prows"></tbody></table></div><div class="card"><h3>By category</h3><table><thead><tr><th>Category</th><th>Qty</th><th>Sales</th></tr></thead><tbody id="crows"></tbody></table></div></div>
 <div class="card"><button class="btn" onclick="csv()">Export CSV</button> <button class="btn" onclick="window.print()">Print</button></div></div>
