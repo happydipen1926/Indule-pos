@@ -1,0 +1,349 @@
+<!doctype html>
+<html>
+<head>
+
+<meta charset="utf-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<title>Select Staff</title>
+
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+
+<script src="data.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+<style>
+
+.pin-page{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+}
+
+.pin-card{
+  width:100%;
+  max-width:380px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:18px;
+  padding:28px;
+  text-align:center;
+}
+
+.pin-title{
+  font-size:28px;
+  font-weight:800;
+  margin-bottom:6px;
+}
+
+.pin-sub{
+  color:#666;
+  margin-bottom:22px;
+}
+
+.pin-display{
+  font-size:32px;
+  letter-spacing:12px;
+  height:58px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border:1px solid #ccc;
+  border-radius:12px;
+  margin-bottom:18px;
+  background:#fafafa;
+}
+
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.keypad button{
+  min-height:62px;
+  font-size:22px;
+  font-weight:700;
+  border:1px solid #ccc;
+  background:#fff;
+  border-radius:12px;
+  cursor:pointer;
+}
+
+.keypad button:hover{
+  background:#f1f1f1;
+}
+
+.pin-enter{
+  margin-top:12px;
+  width:100%;
+  min-height:54px;
+  background:#111;
+  color:#fff;
+  border:0;
+  border-radius:12px;
+  font-size:17px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.pin-clear{
+  background:#eee !important;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="pin-page">
+
+  <div class="pin-card">
+
+    <div class="pin-title">
+      Indulge Cafe
+    </div>
+
+    <div class="pin-sub">
+      Who is using the POS?
+    </div>
+
+    <div
+      class="pin-display"
+      id="pinDisplay">
+    </div>
+
+    <div class="keypad">
+
+      <button onclick="addDigit('1')">1</button>
+      <button onclick="addDigit('2')">2</button>
+      <button onclick="addDigit('3')">3</button>
+
+      <button onclick="addDigit('4')">4</button>
+      <button onclick="addDigit('5')">5</button>
+      <button onclick="addDigit('6')">6</button>
+
+      <button onclick="addDigit('7')">7</button>
+      <button onclick="addDigit('8')">8</button>
+      <button onclick="addDigit('9')">9</button>
+
+      <button
+        class="pin-clear"
+        onclick="clearPin()">
+        Clear
+      </button>
+
+      <button onclick="addDigit('0')">0</button>
+
+      <button
+        class="pin-clear"
+        onclick="backspacePin()">
+        ←
+      </button>
+
+    </div>
+
+    <button
+      class="pin-enter"
+      id="enterBtn"
+      onclick="submitPin()">
+
+      ENTER
+
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+
+if(!App.requireLogin()){
+  throw new Error("login required");
+}
+
+let enteredPin = "";
+
+
+function renderPin(){
+
+  document.getElementById(
+    "pinDisplay"
+  ).textContent =
+    "•".repeat(
+      enteredPin.length
+    );
+
+}
+
+
+function addDigit(value){
+
+  if(
+    enteredPin.length >= 4
+  ){
+    return;
+  }
+
+  enteredPin += value;
+
+  renderPin();
+
+  if(
+    enteredPin.length === 4
+  ){
+
+    setTimeout(
+      submitPin,
+      150
+    );
+
+  }
+
+}
+
+
+function clearPin(){
+
+  enteredPin = "";
+
+  renderPin();
+
+}
+
+
+function backspacePin(){
+
+  enteredPin =
+    enteredPin.slice(
+      0,
+      -1
+    );
+
+  renderPin();
+
+}
+
+
+async function submitPin(){
+
+  if(
+    enteredPin.length !== 4
+  ){
+
+    alert(
+      "Please enter your 4-digit PIN."
+    );
+
+    return;
+  }
+
+
+  const enterBtn =
+    document.getElementById(
+      "enterBtn"
+    );
+
+
+  enterBtn.disabled = true;
+
+  enterBtn.textContent =
+    "Checking...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        "start_staff_pin_session",
+        {
+          p_pin: enteredPin
+        }
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    if(
+      !data ||
+      !data.success
+    ){
+
+      throw new Error(
+        "PIN verification failed"
+      );
+
+    }
+
+
+    sessionStorage.setItem(
+      "pos_staff_session",
+      JSON.stringify({
+        token:data.token,
+        staffId:data.staff_id,
+        staffName:data.staff_name,
+        businessId:data.business_id,
+        role:data.role
+      })
+    );
+
+
+    location.href =
+      "dashboard.html";
+
+
+  } catch(error){
+
+    console.error(
+      "PIN error:",
+      error
+    );
+
+
+    alert(
+      error?.message ||
+      "Incorrect PIN"
+    );
+
+
+    enteredPin = "";
+
+    renderPin();
+
+
+  } finally {
+
+    enterBtn.disabled =
+      false;
+
+    enterBtn.textContent =
+      "ENTER";
+
+  }
+
+}
+
+
+renderPin();
+
+</script>
+
+</body>
+</html>
