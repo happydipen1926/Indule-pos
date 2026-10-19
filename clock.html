@@ -1,0 +1,452 @@
+<!doctype html>
+<html>
+<head>
+
+<meta charset="utf-8">
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<title>Clock In / Out</title>
+
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+
+<script src="data.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</head>
+
+<body>
+
+<div
+  class="app-shell"
+  id="shell">
+</div>
+
+<script>
+
+if(!App.requireLogin()){
+  throw new Error("login required");
+}
+
+document.getElementById("shell").innerHTML =
+  App.shell("clock", "Clock In / Out");
+
+
+document.getElementById("page").innerHTML = `
+
+  <div class="card">
+
+    <h2>Staff Clock</h2>
+
+    <p class="muted">
+      Clock in when you start work and
+      clock out when you finish.
+    </p>
+
+    <div
+      id="staffName"
+      style="
+        font-size:20px;
+        font-weight:700;
+        margin-top:20px;
+      ">
+    </div>
+
+    <div
+      id="statusBox"
+      style="
+        margin-top:20px;
+        padding:20px;
+        border:1px solid var(--line);
+        border-radius:14px;
+      ">
+
+      Loading...
+
+    </div>
+
+
+    <div
+      style="
+        display:flex;
+        gap:10px;
+        margin-top:20px;
+        flex-wrap:wrap;
+      ">
+
+      <button
+        id="clockInBtn"
+        class="btn btn-dark"
+        onclick="clockIn()">
+
+        CLOCK IN
+
+      </button>
+
+
+      <button
+        id="clockOutBtn"
+        class="btn"
+        onclick="clockOut()">
+
+        CLOCK OUT
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div
+    class="card"
+    style="margin-top:16px;">
+
+    <h2>Current Shift</h2>
+
+    <div id="shiftDetails">
+
+      No active shift.
+
+    </div>
+
+  </div>
+
+`;
+
+
+const session =
+  App.session() || {};
+
+
+document.getElementById(
+  "staffName"
+).textContent =
+  session.name || "Staff";
+
+
+function formatDateTime(value){
+
+  if(!value){
+    return "-";
+  }
+
+  return new Date(
+    value
+  ).toLocaleString(
+    "en-AU",
+    {
+      dateStyle:"medium",
+      timeStyle:"short"
+    }
+  );
+
+}
+
+
+function formatDuration(start){
+
+  if(!start){
+    return "-";
+  }
+
+  const startTime =
+    new Date(start).getTime();
+
+  const now =
+    Date.now();
+
+  const minutes =
+    Math.max(
+      0,
+      Math.floor(
+        (now - startTime)
+        / 60000
+      )
+    );
+
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
+
+  const mins =
+    minutes % 60;
+
+  return (
+    hours +
+    "h " +
+    mins +
+    "m"
+  );
+
+}
+
+
+async function loadClockStatus(){
+
+  const statusBox =
+    document.getElementById(
+      "statusBox"
+    );
+
+  const shiftDetails =
+    document.getElementById(
+      "shiftDetails"
+    );
+
+  const clockInBtn =
+    document.getElementById(
+      "clockInBtn"
+    );
+
+  const clockOutBtn =
+    document.getElementById(
+      "clockOutBtn"
+    );
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        "get_my_shift_status"
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    if(
+      data &&
+      data.clocked_in
+    ){
+
+      statusBox.innerHTML = `
+        <b>STATUS:</b>
+        CLOCKED IN
+      `;
+
+      shiftDetails.innerHTML = `
+
+        <p>
+          <b>Clock In:</b>
+          ${formatDateTime(data.clock_in)}
+        </p>
+
+        <p>
+          <b>Time Worked:</b>
+          ${formatDuration(data.clock_in)}
+        </p>
+
+      `;
+
+
+      clockInBtn.disabled =
+        true;
+
+      clockOutBtn.disabled =
+        false;
+
+    } else {
+
+      statusBox.innerHTML = `
+        <b>STATUS:</b>
+        NOT CLOCKED IN
+      `;
+
+      shiftDetails.innerHTML =
+        "No active shift.";
+
+
+      clockInBtn.disabled =
+        false;
+
+      clockOutBtn.disabled =
+        true;
+
+    }
+
+  } catch(error){
+
+    console.error(
+      "Clock status error:",
+      error
+    );
+
+    statusBox.innerHTML =
+      "Could not load clock status.";
+
+  }
+
+}
+
+
+async function clockIn(){
+
+  if(
+    !confirm(
+      "Clock in now?"
+    )
+  ){
+    return;
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        "clock_in_staff"
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    alert(
+      "Clocked in successfully.\n\n" +
+      formatDateTime(
+        data.clock_in
+      )
+    );
+
+
+    await loadClockStatus();
+
+  } catch(error){
+
+    console.error(
+      "Clock in error:",
+      error
+    );
+
+
+    alert(
+      "Could not clock in.\n\n" +
+      (
+        error?.message ||
+        "Unknown error"
+      )
+    );
+
+  }
+
+}
+
+
+async function clockOut(){
+
+  if(
+    !confirm(
+      "Clock out now?"
+    )
+  ){
+    return;
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.rpc(
+        "clock_out_staff"
+      );
+
+
+    if(error){
+      throw error;
+    }
+
+
+    const start =
+      new Date(
+        data.clock_in
+      );
+
+    const end =
+      new Date(
+        data.clock_out
+      );
+
+    const minutes =
+      Math.max(
+        0,
+        Math.floor(
+          (
+            end.getTime()
+            -
+            start.getTime()
+          )
+          / 60000
+        )
+      );
+
+    const hours =
+      Math.floor(
+        minutes / 60
+      );
+
+    const mins =
+      minutes % 60;
+
+
+    alert(
+      "Clocked out successfully.\n\n" +
+      "Total: " +
+      hours +
+      "h " +
+      mins +
+      "m"
+    );
+
+
+    await loadClockStatus();
+
+  } catch(error){
+
+    console.error(
+      "Clock out error:",
+      error
+    );
+
+
+    alert(
+      "Could not clock out.\n\n" +
+      (
+        error?.message ||
+        "Unknown error"
+      )
+    );
+
+  }
+
+}
+
+
+loadClockStatus();
+
+</script>
+
+</body>
+</html>
