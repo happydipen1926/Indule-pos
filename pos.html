@@ -340,37 +340,24 @@ function closePay(){payModal.classList.remove('show')}
 async function finish(method){
 
   if(!cart.length){
+
     alert("No items in cart.");
     return;
+
   }
 
-  const sub =
-    cart.reduce(
-      (n,i) =>
-        n + Number(i.price) * Number(i.qty),
-      0
-    );
 
-  const discountAmount =
-    sub * Number(discount || 0) / 100;
+  if(!type){
 
-  const tot =
-    sub - discountAmount;
+    alert("Choose Dine In or Takeaway.");
+    return;
 
+  }
 
-  try {
-
-    /*
-      IMPORTANT:
-      Use the SAME Supabase client variable
-      that loadCloudMenu() already uses.
-
-      Replace SUPABASE_CLIENT below with that variable.
-    */
-try {
 
   const selectedStaff =
     App.currentStaff();
+
 
   if(
     !selectedStaff ||
@@ -387,38 +374,101 @@ try {
   }
 
 
-  const { data, error } =
-    const { data, error } =
+  const sub =
+    cart.reduce(
+      (n,i) =>
+        n +
+        Number(i.price) *
+        Number(i.qty),
+      0
+    );
+
+
+  const discountAmount =
+    sub *
+    Number(discount || 0) /
+    100;
+
+
+  const tot =
+    sub -
+    discountAmount;
+
+
+  try {
+
+    const {
+      data,
+      error
+    } =
       await supabaseClient.rpc(
-        ""record_pos_sale_by_pin",",
+        "record_pos_sale_by_pin",
         {
-         p_staff_token: selectedStaff.token,
-          p_order_type: type,
-          p_payment_method: method,
-          p_subtotal: sub,
-          p_discount_percent: Number(discount || 0),
-          p_total: tot,
-          p_table_name: tableName.value.trim(),
-          p_items: cart.map(x => ({
-            id: x.id,
-            product_id: x.product_id,
-            name: x.name,
-            product_name: x.product_name,
-            category: x.category,
-            category_name: x.category_name,
-            price: Number(x.price),
-            qty: Number(x.qty)
-          }))
+
+          p_staff_token:
+            selectedStaff.token,
+
+          p_order_type:
+            type,
+
+          p_payment_method:
+            method,
+
+          p_subtotal:
+            sub,
+
+          p_discount_percent:
+            Number(discount || 0),
+
+          p_total:
+            tot,
+
+          p_table_name:
+            tableName.value.trim(),
+
+          p_items:
+            cart.map(
+              x => ({
+                id:
+                  x.id,
+
+                product_id:
+                  x.product_id,
+
+                name:
+                  x.name,
+
+                product_name:
+                  x.product_name,
+
+                category:
+                  x.category,
+
+                category_name:
+                  x.category_name,
+
+                price:
+                  Number(x.price),
+
+                qty:
+                  Number(x.qty)
+              })
+            )
+
         }
       );
 
 
     if(error){
+
       throw error;
+
     }
 
 
-    const result = data || {};
+    const result =
+      data || {};
+
 
     const no =
       result.order_number ||
@@ -427,15 +477,13 @@ try {
 
     /*
       TEMPORARY LOCAL COPY
-
-      Keep this for now so your current
-      Orders page and Dashboard continue working.
-      Later we will change those pages to read
-      Supabase directly.
+      Keep this so Dashboard and Orders
+      continue working for now.
     */
 
     let os =
       App.orders();
+
 
     os.push({
 
@@ -443,34 +491,46 @@ try {
         result.order_id ||
         App.nextId(os),
 
-      orderNumber:no,
+      orderNumber:
+        no,
 
-      orderType:type,
+      orderType:
+        type,
 
-      paymentMethod:method,
+      paymentMethod:
+        method,
 
-      subtotal:sub,
+      subtotal:
+        sub,
 
       discountPercent:
         Number(discount || 0),
 
-      total:tot,
+      total:
+        tot,
 
       tableName:
         tableName.value.trim(),
 
       staffId:
-        result.staff_id || null,
+        result.staff_id ||
+        selectedStaff.staffId ||
+        null,
 
       staffName:
-        result.staff_name || "",
+        result.staff_name ||
+        selectedStaff.staffName ||
+        "",
 
       createdAt:
-        new Date().toISOString(),
+        new Date()
+          .toISOString(),
 
       items:
         cart.map(
-          x => ({...x})
+          x => ({
+            ...x
+          })
         )
 
     });
@@ -483,21 +543,21 @@ try {
 
 
     alert(
-      `Payment recorded\n` +
-      `Order #${no}\n` +
-      `${method}\n` +
-      `${App.money(tot)}`
+      "Payment recorded\n" +
+      "Order #" + no + "\n" +
+      method + "\n" +
+      App.money(tot) + "\n\n" +
+      "Staff: " +
+      (
+        result.staff_name ||
+        selectedStaff.staffName ||
+        ""
+      )
     );
 
 
     clearCart();
 
-
-    /*
-      Do not rely on local nextNo() for
-      the cloud order number.
-      The database now creates the real number.
-    */
 
     orderno.textContent =
       Number(no) + 1;
@@ -513,7 +573,6 @@ try {
 
     alert(
       "Payment was NOT recorded.\n\n" +
-      "Please try again.\n\n" +
       (
         error?.message ||
         "Unknown database error"
