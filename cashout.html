@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>End of Day</title>
+
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+
+<script src="data.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</head>
+
+<body>
+
+<div
+  class="app-shell"
+  id="shell">
+</div>
+
+<script>
+
+if(!App.requireLogin()){
+  throw new Error("login required");
+}
+
+if(!App.requireStaffPin()){
+  throw new Error("staff PIN required");
+}
+
+if(!App.requireAdmin()){
+  throw new Error("admin required");
+}
+
+document.getElementById(
+  "shell"
+).innerHTML =
+  App.shell(
+    "cashout",
+    "End of Day"
+  );
+
+document.getElementById(
+  "page"
+).innerHTML = `
+
+  <div class="card">
+
+    <h2>End of Day</h2>
+
+    <p class="muted">
+      Cash register and daily closing.
+    </p>
+
+    <div style="
+      padding:20px;
+      margin-top:20px;
+      border:1px solid #ddd;
+      border-radius:12px;
+    ">
+
+      End of Day page is working.
+
+    </div>
+
+  </div>
+
+`;
+
+</script>
+
+</body>
+</html>
