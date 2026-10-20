@@ -397,7 +397,12 @@ switchStaff(){
       "Reports",
       "sales"
     ],
-
+     [
+  "cashout.html",
+  "$",
+  "End of Day",
+  "cashout"
+],
     [
       "staff.html",
       "♙",
